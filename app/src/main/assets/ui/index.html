@@ -1,0 +1,102 @@
+<html lang="zh">
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"/>
+        <title>AXON 30 Under Screen UI Adjustment</title>
+        <link rel="stylesheet" href="./styles.css"/>
+        <script src="./scripts/api.js"></script>
+        <script src="./scripts/logic.js"></script>
+        <script src="./scripts/ui.js"></script>
+    </head>
+    <body>
+        <div id="test-background"></div>
+        <div id="form">
+            <h1>屏下区域色彩微调</h1>
+            <div id="dashboard">
+                <div class="label" id="slider-r-label">红色</div>
+                <div class="slider" id="slider-r">
+                    <div class="progress">
+                        <div class="handle"></div>
+                    </div>
+                </div>
+                <div class="label" id="slider-g-label">绿色</div>
+                <div class="slider" id="slider-g">
+                    <div class="progress">
+                        <div class="handle"></div>
+                    </div>
+                </div>
+                <div class="label" id="slider-b-label">蓝色</div>
+                <div class="slider" id="slider-b">
+                    <div class="progress">
+                        <div class="handle"></div>
+                    </div>
+                </div>
+                <div class="label" id="slider-a-label">不透明度</div>
+                <div class="slider" id="slider-a">
+                    <div class="progress">
+                        <div class="handle"></div>
+                    </div>
+                </div>
+                <div class="label">测试背景色</div>
+                <div class="colors">
+                    <div class="color-well selected" style="background-color: #fff;"></div>
+                    <div class="color-well" style="background-color: #ccc;"></div>
+                    <div class="color-well" style="background-color: #999;"></div>
+                    <div class="color-well" style="background-color: #666;"></div>
+                    <div class="color-well" style="background-color: #333;"></div>
+                    <div class="color-well" style="background-color: #000;"></div>
+                    <div class="color-well" style="background-color: #f00;"></div>
+                    <div class="color-well" style="background-color: #0f0;"></div>
+                    <div class="color-well" style="background-color: #00f;"></div>
+                    <div class="color-well" style="background-color: #f88;"></div>
+                    <div class="color-well" style="background-color: #8f8;"></div>
+                    <div class="color-well" style="background-color: #88f;"></div>
+                    <div class="color-well" style="background-color: #ff0;"></div>
+                    <div class="color-well" style="background-color: #0ff;"></div>
+                    <div class="color-well" style="background-color: #f0f;"></div>
+                    <div class="color-well" style="background-color: #ff8;"></div>
+                    <div class="color-well" style="background-color: #8ff;"></div>
+                    <div class="color-well" style="background-color: #f8f;"></div>
+                </div>
+                <div style="display: flex;">
+                    <div class="button" style="background-color: transparent;" onclick="document.querySelector('#version').classList.add('visible')">历史</div>
+                    <div class="button" style="background-color: transparent; margin-left: 0;" onclick="document.querySelector('#help').classList.add('visible')">帮助</div>
+                    <div class="button" style="margin-left: 0;" onclick="MinunZTEAxon30Logic.saveAdjustment()">保存</div>
+                </div>
+            </div>
+        </div>
+        <div id="permission" class="mask">
+            <div class="form">
+                <h2>权限申请</h2>
+                <div>“A30屏下微调”需要申请悬浮窗权限，用来补偿屏下摄像头部分的显示色差。本方案是非侵入式的，不会对您的系统产生其他额外的影响。请您移步到系统设置页面开启该选项，谢谢！</div>
+                <div class="button" style="margin-right: 0px;" onclick="MinunZTEAxon30Logic.navigateToPermissionManager()">前往权限设置页面</div>
+            </div>
+        </div>
+        <div id="hint" class="mask visible">
+            <div class="form">
+                <h2>应用说明</h2>
+                <div>“A30屏下微调”是一个非官方的应用，用于在OLED液晶屏幕效能稳定前，对Axon30屏下版的屏下部分屏幕进行色差补偿微调。由于在效能稳定前，屏幕亮度会存在有反复波动，因此每次的微调仅保证当前屏幕状态（屏幕使用时长、屏幕温度和屏幕亮度）下的显示效果，并不能保证长期的补偿正确性。该版本为初期版本，仅供测试使用。虽然应用在设计上是非侵入设计，不会对系统做出修改，也不会要求用户做特别的前置操作，但也不保证对硬件和系统后期的使用没有影响，还请各位用户谨慎自行选择是否使用，避免风险。本应用开发人员也仅仅只使用业余时间和精力开发，并不对本应用后期可能带来的任何风险与问题担负责任。谢谢！</div>
+                <div class="button" style="margin-right: 0px;" onclick="document.querySelector('#hint').classList.remove('visible')">我知道了</div>
+            </div>
+        </div>
+        <div id="help" class="mask">
+            <div class="form">
+                <h2>使用说明</h2>
+                <div>在开启了系统悬浮窗选项以后，先挑选白色或绿色背景，调节不透明度，直至两部分屏幕没有明显差异后。针对红蓝两色背景情况下，分别调整红蓝两色的补偿。之后在各个测试背景色下尝试微调参数，直到两块屏幕之间的色差基本消除后。点击保存按钮，返回桌面即可。目前本应用没有强行后台常驻，因此请确保在历史中不要清除本应用的前台界面。由于技术和时间限制，在部分系统界面中尚未有支持自动补偿，已知的有：锁屏界面、消息通知界面和系统设置的部分关键界面等。</div>
+                <div class="button" style="margin-right: 0px;" onclick="document.querySelector('#help').classList.remove('visible')">我知道了</div>
+            </div>
+        </div>
+        <div id="version" class="mask">
+            <div class="form">
+                <h2>版本历史</h2>
+                <div>210830.3: 增加了保存微调数据支持</div>
+                <div>210830.2: 增加了横屏界面的支持</div>
+                <div>210830: 实现屏下补偿方案</div>
+                <div class="button" style="margin-right: 0px;" onclick="document.querySelector('#version').classList.remove('visible')">我知道了</div>
+            </div>
+        </div>
+        <div id="sample-hole" style="background-color: #00000011;"></div>
+        <div id="reload-button" onclick="document.location.reload()">重置</div>
+        <div id="copyright">Made by minun</div>
+    </body>
+</html>
