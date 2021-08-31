@@ -1,5 +1,7 @@
 package minun.zte.axon30.under_screen_adjustment;
 
+import android.accessibilityservice.AccessibilityServiceInfo;
+
 import android.annotation.SuppressLint;
 
 import android.app.Activity;
@@ -9,8 +11,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 
-import android.net.Uri;
-
 import android.os.Bundle;
 import android.os.IBinder;
 
@@ -18,6 +18,7 @@ import android.provider.Settings;
 
 import android.util.Log;
 
+import android.view.accessibility.AccessibilityManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -30,6 +31,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class AdjustmentActivity extends Activity {
@@ -133,56 +135,9 @@ public class AdjustmentActivity extends Activity {
         void invoke(String api, JSONObject parameters, AdjustmentJavaScriptCallback callback);
     }
 
-    private class AdjustmentServiceConnection implements ServiceConnection {
-
-        private boolean boundApplied = false;
-
-        private AdjustmentService boundService = null;
-
-        public AdjustmentServiceConnection() {
-            this.bind();
-        }
-
-        public AdjustmentService getBoundService() {
-            return boundService;
-        }
-
-        public void bind() {
-
-            if (this.boundApplied) {
-                return;
-            }
-
-            Intent intent = new Intent(AdjustmentActivity.this, AdjustmentService.class);
-
-            this.boundApplied = AdjustmentActivity.this.bindService(intent, this, Context.BIND_AUTO_CREATE);
-
-        }
-
-        public void unbind() {
-            if (this.boundApplied) {
-                this.boundApplied = false;
-                AdjustmentActivity.this.unbindService(this);
-            }
-        }
-
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            this.boundService = ((AdjustmentService.LocalBinder)service).getService();
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            this.boundService = null;
-        }
-
-    }
-
     private Map<String, AdjustmentJavaScriptAPI> adjustmentJavaScriptAPIs;
 
     private WebView webView;
-
-    private AdjustmentServiceConnection adjustmentServiceConnection;
 
     private String permissionCheckCallbackScript;
 
@@ -191,8 +146,6 @@ public class AdjustmentActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
-
-        this.adjustmentServiceConnection = new AdjustmentServiceConnection();
 
         this.adjustmentJavaScriptAPIs = new HashMap<>();
 
@@ -203,13 +156,21 @@ public class AdjustmentActivity extends Activity {
         this.webView = new WebView(this);
         this.webView.setWebViewClient(new WebViewClient());
         this.webView.addJavascriptInterface(new AdjustmentJavaScriptInterface(), ".MinunZTEAxon30API");
-//        this.webView.loadUrl("http://192.168.1.105:24724");
-        this.webView.loadUrl("file:///android_asset/ui/index.html");
+        this.webView.loadUrl("http://192.168.1.8:24724");
+//        this.webView.loadUrl("file:///android_asset/ui/index.html");
 
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
 
         this.setContentView(this.webView);
+
+        try {
+            this.startForegroundService(new Intent(this, OngoingService.class));
+        } catch (Exception exception) {
+            exception.printStackTrace();
+        }
+
+        this.showAdjustmentOverlay(true);
 
     }
 
@@ -221,7 +182,7 @@ public class AdjustmentActivity extends Activity {
                 if (!Settings.canDrawOverlays(this)) {
                     Log.e("minun", "User denied for permission creating overlay");
                 } else {
-                    this.showAdjustmentOverlay();
+                    this.showAdjustmentOverlay(true);
                 }
                 if (this.permissionCheckCallbackScript != null) {
                     this.evaluateJavaScript(this.permissionCheckCallbackScript);
@@ -257,8 +218,6 @@ public class AdjustmentActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-
-        this.adjustmentServiceConnection.unbind();
 
         super.onDestroy();
 
@@ -325,12 +284,12 @@ public class AdjustmentActivity extends Activity {
         });
 
         this.adjustmentJavaScriptAPIs.put("showAdjustmentOverlay", (api, parameters, callback) -> {
-            AdjustmentActivity.this.showAdjustmentOverlay();
+            AdjustmentActivity.this.showAdjustmentOverlay(true);
             callback.response(OK);
         });
 
         this.adjustmentJavaScriptAPIs.put("isOverlayPermissionGranted", (api, parameters, callback) -> {
-            boolean granted = Settings.canDrawOverlays(AdjustmentActivity.this);
+            boolean granted = AdjustmentActivity.this.isOverlayPermissionGranted();
             callback.response(OK, granted);
         });
 
@@ -364,28 +323,31 @@ public class AdjustmentActivity extends Activity {
 
     private void hideAdjustmentOverlay() {
         this.runOnUiThread(() -> {
-            AdjustmentService service = AdjustmentActivity.this.adjustmentServiceConnection.getBoundService();
+            OngoingService service = OngoingService.getInstance();
             if (service == null) {
+                Log.e("minun", "Adjustment service not available");
                 return;
             }
             service.hideAdjustmentOverlay();
         });
     }
 
-    private void showAdjustmentOverlay() {
+    private void showAdjustmentOverlay(boolean clear) {
         this.runOnUiThread(() -> {
-            AdjustmentService service = AdjustmentActivity.this.adjustmentServiceConnection.getBoundService();
+            OngoingService service = OngoingService.getInstance();
             if (service == null) {
+                Log.e("minun", "Adjustment service not available");
                 return;
             }
-            service.showAdjustmentOverlay();
+            service.showAdjustmentOverlay(clear);
         });
     }
 
     private void setAdjustment(float r, float g, float b, float a, boolean update) {
         this.runOnUiThread(() -> {
-            AdjustmentService service = AdjustmentActivity.this.adjustmentServiceConnection.getBoundService();
+            OngoingService service = OngoingService.getInstance();
             if (service == null) {
+                Log.e("minun", "Adjustment service not available");
                 return;
             }
             service.setAdjustment(r, g, b, a, update);
@@ -395,8 +357,9 @@ public class AdjustmentActivity extends Activity {
 
     private void clearAdjustmentOverlay() {
         this.runOnUiThread(() -> {
-            AdjustmentService service = AdjustmentActivity.this.adjustmentServiceConnection.getBoundService();
+            OngoingService service = OngoingService.getInstance();
             if (service == null) {
+                Log.e("minun", "Adjustment service not available");
                 return;
             }
             service.clearAdjustment();
@@ -405,8 +368,9 @@ public class AdjustmentActivity extends Activity {
 
     private void restoreAdjustmentOverlay() {
         this.runOnUiThread(() -> {
-            AdjustmentService service = AdjustmentActivity.this.adjustmentServiceConnection.getBoundService();
+            OngoingService service = OngoingService.getInstance();
             if (service == null) {
+                Log.e("minun", "Adjustment service not available");
                 return;
             }
             service.restoreAdjustment();
@@ -414,19 +378,37 @@ public class AdjustmentActivity extends Activity {
     }
 
     private float[] getCurrentAdjustment() {
-        AdjustmentService service = AdjustmentActivity.this.adjustmentServiceConnection.getBoundService();
+        OngoingService service = OngoingService.getInstance();
         if (service == null) {
+            Log.e("minun", "Adjustment service not available");
             return null;
         }
         return service.getCurrentAdjustment();
+    }
+
+    private boolean isOverlayPermissionGranted() {
+
+        if (AdjustmentService.getInstance() == null) {
+            return false;
+        }
+
+        AccessibilityManager manager = (AccessibilityManager)this.getSystemService(Context.ACCESSIBILITY_SERVICE);
+        List<AccessibilityServiceInfo> serviceInfoList = manager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
+        for (AccessibilityServiceInfo serviceInfo : serviceInfoList) {
+            String id = serviceInfo.getId();
+            if ("minun.zte.axon30.under_screen_adjustment/.AdjustmentService".equals(id)) {
+                return true;
+            }
+        }
+        return false;
+
     }
 
     private void navigateToPermissionManager() {
 
         Intent intent = new Intent();
 
-        intent.setAction(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
-        intent.setData(Uri.parse("package:" + getPackageName()));
+        intent.setAction(Settings.ACTION_ACCESSIBILITY_SETTINGS);
 
         startActivityForResult(intent, AdjustmentActivity.PERMISSION_REQUEST_CODE);
 
