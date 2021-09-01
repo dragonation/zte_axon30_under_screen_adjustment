@@ -1,12 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="minun.zte.axon30.under_screen_adjustment">
 
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
-
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
@@ -20,14 +17,14 @@
                  android:icon="@mipmap/ic_launcher"
                  android:supportsRtl="true"
                  android:theme="@style/Clean"
-                 android:excludeFromRecents="true"
                  android:noHistory="true"
                  android:usesCleartextTraffic="true">
 
         <activity android:name=".AdjustmentActivity"
                   android:label="@string/app_name"
-                  android:noHistory="true"
                   android:configChanges=""
+                  android:lockTaskMode="always"
+                  android:launchMode="singleInstance"
                   android:theme="@style/Clean">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -50,6 +47,7 @@
                  android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
                  android:enabled="true"
                  android:exported="true"
+                 android:process=":accessibility"
                  android:label="@string/app_name">
             <meta-data android:name="android.accessibilityservice"
                        android:resource="@xml/accessibility_service_config"/>

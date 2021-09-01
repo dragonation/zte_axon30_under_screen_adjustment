@@ -6,14 +6,13 @@ import android.annotation.SuppressLint;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
+
 import android.content.Intent;
 import android.content.IntentFilter;
-
 import android.content.pm.ActivityInfo;
 
 import android.graphics.PixelFormat;
 
-import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
@@ -22,25 +21,81 @@ import android.view.accessibility.AccessibilityEvent;
 
 public class AdjustmentService extends AccessibilityService {
 
-    public static final String ONGOING_INTENT = "minun.zte.axon30.under_screen_adjustment.adjustment";
+    public static final String ACCESSIBILITY_ADJUST = "minun.zte.axon30.under_screen_adjustment.adjust";
 
-    private static AdjustmentService adjustmentService;
+    public static final int HIDE_ADJUSTMENT_OVERLAY = 1;
+    public static final int SHOW_ADJUSTMENT_OVERLAY = 2;
 
-    private class OngoingReceiver extends BroadcastReceiver {
+    public static final int SET_ADJUSTMENT = 10;
+    public static final int CLEAR_ADJUSTMENT = 11;
+    public static final int RESTORE_ADJUSTMENT = 12;
+    public static final int SYNC_DISPLAY_ORIENTATION = 13;
+
+    public static final int ORIENTATION_PORTRAIT = 1;
+    public static final int ORIENTATION_PORTRAIT_UPSIDE_DOWN = 2;
+    public static final int ORIENTATION_LANDSCAPE_UPSIDE_LEFT = 3;
+    public static final int ORIENTATION_LANDSCAPE_UPSIDE_RIGHT = 4;
+
+    private class AdjustmentServiceReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.e("minun", "test");
-//            float temperature = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -2550) / 10f;
-//            OngoingService.this.batteryTemperature = temperature;
-//            OngoingService.this.autorefreshAdjustment();
+            AdjustmentService service = AdjustmentService.this;
+            switch (intent.getIntExtra("action", 0)) {
+                case HIDE_ADJUSTMENT_OVERLAY: { service.hideAdjustmentOverlay(); break; }
+                case SHOW_ADJUSTMENT_OVERLAY: {
+                    boolean clear = intent.getBooleanExtra("clear", false);
+                    service.showAdjustmentOverlay(clear);
+                    break;
+                }
+                case SET_ADJUSTMENT: {
+                    float r = intent.getFloatExtra("r", 0f);
+                    float g = intent.getFloatExtra("g", 0f);
+                    float b = intent.getFloatExtra("b", 0f);
+                    float a = intent.getFloatExtra("a", 0f);
+                    boolean update = intent.getBooleanExtra("update", false);
+                    service.setAdjustment(r, g, b, a, update);
+                    break;
+                }
+                case CLEAR_ADJUSTMENT: { service.clearAdjustment(); break; }
+                case RESTORE_ADJUSTMENT: { service.restoreAdjustment(); break; }
+                case SYNC_DISPLAY_ORIENTATION: {
+                    switch (intent.getIntExtra("rotation", 0)) {
+                        case ORIENTATION_PORTRAIT: {
+                            service.syncDisplayOrientation(OngoingService.DisplayOrientation.PORTRAIT);
+                            break;
+                        }
+                        case ORIENTATION_PORTRAIT_UPSIDE_DOWN: {
+                            service.syncDisplayOrientation(OngoingService.DisplayOrientation.PORTRAIT_UPSIDE_DOWN);
+                            break;
+                        }
+                        case ORIENTATION_LANDSCAPE_UPSIDE_LEFT: {
+                            service.syncDisplayOrientation(OngoingService.DisplayOrientation.LANDSCAPE_UPSIDE_LEFT);
+                            break;
+                        }
+                        case ORIENTATION_LANDSCAPE_UPSIDE_RIGHT: {
+                            service.syncDisplayOrientation(OngoingService.DisplayOrientation.LANDSCAPE_UPSIDE_RIGHT);
+                            break;
+                        }
+                        default: {
+                            service.syncDisplayOrientation(OngoingService.DisplayOrientation.PORTRAIT);
+                            break;
+                        }
+                    }
+                    service.showAdjustmentOverlay(false);
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
         }
     }
+
+    private AdjustmentServiceReceiver receiver;
 
     private WindowManager windowManager;
     private WindowManager.LayoutParams layoutParams;
     private AdjustmentView adjustmentView;
-
-    private OngoingReceiver ongoingReceiver;
 
     private OngoingService.DisplayOrientation displayOrientation;
 
@@ -54,13 +109,6 @@ public class AdjustmentService extends AccessibilityService {
 
         super.onServiceConnected();
 
-        adjustmentService = this;
-
-        if (this.ongoingReceiver == null) {
-            this.ongoingReceiver = new OngoingReceiver();
-            this.registerReceiver(this.ongoingReceiver, new IntentFilter(ONGOING_INTENT));
-        }
-
         this.displayOrientation = OngoingService.DisplayOrientation.PORTRAIT;
 
         this.r = 0;
@@ -68,23 +116,19 @@ public class AdjustmentService extends AccessibilityService {
         this.b = 0;
         this.a = 0;
 
-        this.showAdjustmentOverlay(true);
-
+        if (this.receiver == null) {
+            this.receiver = new AdjustmentServiceReceiver();
+            registerReceiver(this.receiver, new IntentFilter(ACCESSIBILITY_ADJUST));
+        }
     }
 
     @Override
     public void onDestroy() {
 
-        if (adjustmentService == this) {
-            adjustmentService = null;
-        }
-
         this.hideAdjustmentOverlay();
 
-        if (this.ongoingReceiver != null) {
-            OngoingReceiver ongoingReceiver = this.ongoingReceiver;
-            this.ongoingReceiver = null;
-            this.unregisterReceiver(ongoingReceiver);
+        if (this.receiver != null) {
+            this.unregisterReceiver(this.receiver);
         }
 
         super.onDestroy();
@@ -101,14 +145,6 @@ public class AdjustmentService extends AccessibilityService {
         // Do nothing
     }
 
-    // TODO: find a better solution to communicate between accessibility service and
-    //       foreground
-    public static AdjustmentService getInstance() {
-
-        return adjustmentService;
-
-    }
-
     public void hideAdjustmentOverlay() {
 
         if (adjustmentView != null) {
@@ -121,8 +157,6 @@ public class AdjustmentService extends AccessibilityService {
     public void syncDisplayOrientation(OngoingService.DisplayOrientation displayOrientation) {
 
         this.displayOrientation = displayOrientation;
-
-        this.showAdjustmentOverlay(false);
 
     }
 

@@ -132,22 +132,31 @@ window.addEventListener("load", async function () {
         });
     })(node);
 
-    const confirmOverlayPermission = async function () {
+    const confirmSystemPermission = async function () {
 
         if (!(await MinunZTEAxon30Logic.isOverlayPermissionGranted())) {
             document.querySelector("#permission.mask").classList.add("visible");
         } else {
             document.querySelector("#permission.mask").classList.remove("visible");
+            MinunZTEAxon30Logic.showAdjustmentOverlay().catch((error) => {
+                // Do nothing
+            });
+            // MinunZTEAxon30Logic.autoenableAccessibilityService().catch((error) => {
+            //     // Do nothing
+            // });
         }
 
     };
 
-    confirmOverlayPermission().catch((error) => {
+    confirmSystemPermission().catch((error) => {
+        // Do nothing
+    });
+    reloadCurrentAdjustment().catch((error) => {
         // Do nothing
     });
 
     MinunZTEAxon30Logic.addPermissionChangeCallback(() => {
-        confirmOverlayPermission().catch((error) => {
+        confirmSystemPermission().catch((error) => {
             // Do nothing
         });
         reloadCurrentAdjustment().catch((error) => {

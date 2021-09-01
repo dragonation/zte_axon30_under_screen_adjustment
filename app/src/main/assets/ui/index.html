@@ -68,35 +68,36 @@
         <div id="permission" class="mask">
             <div class="form">
                 <h2>权限申请</h2>
-                <div>“A30屏下微调”需要申请悬浮窗权限，用来补偿屏下摄像头部分的显示色差。本方案是非侵入式的，不会对您的系统产生其他额外的影响。请您移步到系统设置页面开启该选项，谢谢！</div>
+                <div style="line-height: 20px;">“A30屏下微调”的运行需要开启无障碍服务，用来补偿屏下摄像头部分的显示色差。本方案是非侵入式的，不会对您的系统产生其他额外的影响。请您移步到系统设置页面开启该选项，谢谢！该选项在某些场景下可能会开启失败，如果遇到失败的情况可以关闭重开，一般会有解决。</div>
                 <div class="button" style="margin-right: 0px;" onclick="MinunZTEAxon30Logic.navigateToPermissionManager()">前往权限设置页面</div>
             </div>
         </div>
         <div id="hint" class="mask visible">
             <div class="form">
                 <h2>应用说明</h2>
-                <div>“A30屏下微调”是一个非官方的应用，用于在OLED液晶屏幕效能稳定前，对Axon30屏下版的屏下部分屏幕进行色差补偿微调。由于在效能稳定前，屏幕亮度会存在有反复波动，因此每次的微调仅保证当前屏幕状态（屏幕使用时长、屏幕温度和屏幕亮度）下的显示效果，并不能保证长期的补偿正确性。该版本为初期版本，仅供测试使用。虽然应用在设计上是非侵入设计，不会对系统做出修改，也不会要求用户做特别的前置操作，但也不保证对硬件和系统后期的使用没有影响，还请各位用户谨慎自行选择是否使用，避免风险。本应用开发人员也仅仅只使用业余时间和精力开发，并不对本应用后期可能带来的任何风险与问题担负责任。谢谢！</div>
+                <div style="line-height: 20px;">“A30屏下微调”是一个非官方的应用，用于在OLED液晶屏幕效能稳定前，对Axon30屏下版的屏下部分屏幕进行色差补偿微调。由于在效能稳定前，屏幕亮度会存在有反复波动，因此每次的微调仅保证当前屏幕状态（屏幕使用时长、屏幕温度和屏幕亮度）下的显示效果，并不能保证长期的补偿正确性。该版本为初期版本，仅供测试使用。虽然应用在设计上是非侵入设计，不会对系统做出修改，也不会要求用户做特别的前置操作，但也不保证对硬件和系统后期的使用没有影响，还请各位用户谨慎自行选择是否使用，避免风险。本应用开发人员也仅仅只使用业余时间和精力开发，并不对本应用后期可能带来的任何风险与问题担负责任。另据可靠消息，官方对屏幕补偿的前期问题已有计划提供工具进行调整，届时还请大家使用官方应用。谢谢！</div>
                 <div class="button" style="margin-right: 0px;" onclick="document.querySelector('#hint').classList.remove('visible')">我知道了</div>
             </div>
         </div>
         <div id="help" class="mask">
             <div class="form">
                 <h2>使用说明</h2>
-                <div>在开启了系统悬浮窗选项以后，先挑选白色或绿色背景，调节不透明度，直至两部分屏幕没有明显差异后。针对红蓝两色背景情况下，分别调整红蓝两色的补偿。之后在各个测试背景色下尝试微调参数，直到两块屏幕之间的色差基本消除后。点击保存按钮，返回桌面即可。目前本应用没有强行后台常驻，因此请确保在历史中不要清除本应用的前台界面。由于技术和时间限制，在部分系统界面中尚未有支持自动补偿，已知的有：锁屏界面、消息通知界面和系统设置的部分关键界面等。</div>
+                <div style="line-height: 20px;">在开启了系统无障碍选项以后，先挑选白色或绿色背景，调节不透明度，直至两部分屏幕没有明显差异后。针对红蓝两色背景情况下，分别调整红蓝两色的补偿。之后在各个测试背景色下尝试微调参数，直到两块屏幕之间的色差基本消除后。点击保存按钮，返回桌面即可。目前本应用没有强行后台常驻，因此请确保在历史中不要清除本应用的前台界面。</div>
                 <div class="button" style="margin-right: 0px;" onclick="document.querySelector('#help').classList.remove('visible')">我知道了</div>
             </div>
         </div>
         <div id="version" class="mask">
             <div class="form">
                 <h2>版本历史</h2>
+                <div>210901.1: 改为无障碍全界面补偿</div>
                 <div>210830.3: 增加了保存微调数据支持</div>
                 <div>210830.2: 增加了横屏界面的支持</div>
-                <div>210830: 实现屏下补偿方案</div>
+                <div>210830.1: 实现屏下补偿方案</div>
                 <div class="button" style="margin-right: 0px;" onclick="document.querySelector('#version').classList.remove('visible')">我知道了</div>
             </div>
         </div>
         <div id="sample-hole" style="background-color: #00000011;"></div>
         <div id="reload-button" onclick="document.location.reload()">重置</div>
-        <div id="copyright">Made by minun</div>
+        <div id="copyright">Made by minun, version 210901.1</div>
     </body>
 </html>

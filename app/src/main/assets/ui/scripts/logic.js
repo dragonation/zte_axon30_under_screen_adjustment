@@ -91,6 +91,24 @@
 
     };
 
+    logic.navigateToSettingPermission = async function () {
+
+        return await window.MinunZTEAxon30API.navigateToSettingPermission();
+
+    };
+
+    logic.isWritingSystemPermissionGranted = async function () {
+
+        return await window.MinunZTEAxon30API.isWritingSystemPermissionGranted();
+
+    };
+
+    logic.autoenableAccessibilityService = async function () {
+
+        return await window.MinunZTEAxon30API.autoenableAccessibilityService();
+
+    };
+
     window.MinunZTEAxon30Logic = logic;
 
     await window.MinunZTEAxon30API.setPermissionCheckCallbackScript("window.MinunZTEAxon30Logic.callbackPermissionChanges()");

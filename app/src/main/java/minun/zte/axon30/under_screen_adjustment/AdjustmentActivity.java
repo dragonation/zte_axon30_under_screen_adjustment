@@ -6,19 +6,19 @@ import android.annotation.SuppressLint;
 
 import android.app.Activity;
 
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
+
+import android.net.Uri;
 
 import android.os.Bundle;
-import android.os.IBinder;
 
 import android.provider.Settings;
 
 import android.util.Log;
 
 import android.view.accessibility.AccessibilityManager;
+
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -156,8 +156,8 @@ public class AdjustmentActivity extends Activity {
         this.webView = new WebView(this);
         this.webView.setWebViewClient(new WebViewClient());
         this.webView.addJavascriptInterface(new AdjustmentJavaScriptInterface(), ".MinunZTEAxon30API");
-        this.webView.loadUrl("http://192.168.1.8:24724");
-//        this.webView.loadUrl("file:///android_asset/ui/index.html");
+//        this.webView.loadUrl("http://192.168.1.105:24724");
+        this.webView.loadUrl("file:///android_asset/ui/index.html");
 
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
@@ -191,6 +191,15 @@ public class AdjustmentActivity extends Activity {
             }
             default: { break; }
         }
+
+        this.showAdjustmentOverlay(true);
+
+    }
+
+    @Override
+    public void onBackPressed() {
+
+        this.moveTaskToBack(true);
 
     }
 
@@ -311,6 +320,21 @@ public class AdjustmentActivity extends Activity {
             callback.response(OK);
         });
 
+        this.adjustmentJavaScriptAPIs.put("isWritingSystemPermissionGranted", (api, parameters, callback) -> {
+            boolean granted = AdjustmentActivity.this.isWritingSystemPermissionGranted();
+            callback.response(OK, granted);
+        });
+
+        this.adjustmentJavaScriptAPIs.put("navigateToSettingPermission", (api, parameters, callback) -> {
+            AdjustmentActivity.this.navigateToSettingPermission();
+            callback.response(OK);
+        });
+
+        this.adjustmentJavaScriptAPIs.put("autoenableAccessibilityService", (api, parameters, callback) -> {
+            AdjustmentActivity.this.autoenableAccessibilityService();
+            callback.response(OK);
+        });
+
     }
 
     private void evaluateJavaScript(String script) {
@@ -386,11 +410,43 @@ public class AdjustmentActivity extends Activity {
         return service.getCurrentAdjustment();
     }
 
-    private boolean isOverlayPermissionGranted() {
+    private boolean isWritingSystemPermissionGranted() {
+        return Settings.System.canWrite(this);
+    }
 
-        if (AdjustmentService.getInstance() == null) {
-            return false;
+    private void navigateToSettingPermission() {
+
+        Intent intent = new Intent();
+
+        intent.setAction(Settings.ACTION_MANAGE_WRITE_SETTINGS);
+        intent.setData(Uri.parse("package:" + getPackageName()));
+
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        startActivityForResult(intent, AdjustmentActivity.PERMISSION_REQUEST_CODE);
+
+    }
+
+    private void autoenableAccessibilityService() {
+
+        if (!this.isWritingSystemPermissionGranted()) {
+            return;
         }
+
+        try {
+            Settings.Secure.putString(getContentResolver(),
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+                    "minun.zte.axon30.under_screen_adjustment/minun.zte.axon30.under_screen_adjustment.AdjustmentService");
+            Settings.Secure.putInt(getContentResolver(),
+                    Settings.Secure.ACCESSIBILITY_ENABLED, 1);
+        } catch (Exception exception) {
+            Toast.makeText(this, exception.getMessage(), Toast.LENGTH_LONG).show();
+            Log.e("minun", "Failed to autoenable accessiblity service");
+        }
+
+    }
+
+    private boolean isOverlayPermissionGranted() {
 
         AccessibilityManager manager = (AccessibilityManager)this.getSystemService(Context.ACCESSIBILITY_SERVICE);
         List<AccessibilityServiceInfo> serviceInfoList = manager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
@@ -409,6 +465,7 @@ public class AdjustmentActivity extends Activity {
         Intent intent = new Intent();
 
         intent.setAction(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
         startActivityForResult(intent, AdjustmentActivity.PERMISSION_REQUEST_CODE);
 

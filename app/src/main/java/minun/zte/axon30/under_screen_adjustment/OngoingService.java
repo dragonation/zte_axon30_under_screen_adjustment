@@ -1,9 +1,6 @@
 package minun.zte.axon30.under_screen_adjustment;
 
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.Service;
+import android.app.*;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -154,6 +151,13 @@ public class OngoingService extends Service {
 
             Notification.Builder builder = new Notification.Builder(this, "minun");
 
+            builder.setContentTitle("A30屏下微调");
+            builder.setContentText("点按对重新调整屏下微调参数");
+            builder.setSmallIcon(R.mipmap.notification_icon);
+
+            PendingIntent contentIntent = PendingIntent.getActivity(this, 0, new Intent(this, AdjustmentActivity.class), 0);
+            builder.setContentIntent(contentIntent);
+
             Notification notification = builder.build();
 
             this.startForeground(ONGOING_ID, notification);
@@ -269,37 +273,35 @@ public class OngoingService extends Service {
 
     public void hideAdjustmentOverlay() {
 
-        AdjustmentService service = AdjustmentService.getInstance();
-        if (service == null) {
-            Log.e("minun", "Accessibility service not found");
-            return;
-        }
+        Intent intent = new Intent(AdjustmentService.ACCESSIBILITY_ADJUST);
+        intent.putExtra("action", AdjustmentService.HIDE_ADJUSTMENT_OVERLAY);
 
-        service.hideAdjustmentOverlay();
+        sendBroadcast(intent);
 
     }
 
     public void showAdjustmentOverlay(boolean clear) {
 
-        AdjustmentService service = AdjustmentService.getInstance();
-        if (service == null) {
-            Log.e("minun", "Accessibility service not found");
-            return;
-        }
+        Intent intent = new Intent(AdjustmentService.ACCESSIBILITY_ADJUST);
+        intent.putExtra("action", AdjustmentService.SHOW_ADJUSTMENT_OVERLAY);
 
-        service.showAdjustmentOverlay(clear);
+        sendBroadcast(intent);
 
     }
 
     public void syncDisplayOrientation() {
 
-        AdjustmentService service = AdjustmentService.getInstance();
-        if (service == null) {
-            Log.e("minun", "Accessibility service not found");
-            return;
+        Intent intent = new Intent(AdjustmentService.ACCESSIBILITY_ADJUST);
+        intent.putExtra("action", AdjustmentService.SYNC_DISPLAY_ORIENTATION);
+        switch (this.displayOrientation) {
+            case PORTRAIT: { intent.putExtra("rotation", AdjustmentService.ORIENTATION_PORTRAIT); break; }
+            case PORTRAIT_UPSIDE_DOWN: { intent.putExtra("rotation", AdjustmentService.ORIENTATION_PORTRAIT_UPSIDE_DOWN); break; }
+            case LANDSCAPE_UPSIDE_LEFT: { intent.putExtra("rotation", AdjustmentService.ORIENTATION_LANDSCAPE_UPSIDE_LEFT); break; }
+            case LANDSCAPE_UPSIDE_RIGHT: { intent.putExtra("rotation", AdjustmentService.ORIENTATION_LANDSCAPE_UPSIDE_RIGHT); break; }
+            default: { break; }
         }
 
-        service.syncDisplayOrientation(this.displayOrientation);
+        sendBroadcast(intent);
 
     }
 
@@ -330,37 +332,46 @@ public class OngoingService extends Service {
                 this.b,
                 this.a);
 
-        AdjustmentService service = AdjustmentService.getInstance();
-        if (service == null) {
-            Log.e("minun", "Accessibility service not found");
-            return;
-        }
+        Intent intent = new Intent(AdjustmentService.ACCESSIBILITY_ADJUST);
 
-        service.setAdjustment(this.r, this.g, this.b, this.a, update);
+        intent.putExtra("action", AdjustmentService.SET_ADJUSTMENT);
+        intent.putExtra("r", this.r);
+        intent.putExtra("g", this.g);
+        intent.putExtra("b", this.b);
+        intent.putExtra("a", this.a);
+        intent.putExtra("update", update);
+
+        this.sendBroadcast(intent);
 
     }
 
     public void clearAdjustment() {
 
-        AdjustmentService service = AdjustmentService.getInstance();
-        if (service == null) {
-            Log.e("minun", "Accessibility service not found");
-            return;
-        }
+        Intent intent = new Intent(AdjustmentService.ACCESSIBILITY_ADJUST);
+        intent.putExtra("action", AdjustmentService.CLEAR_ADJUSTMENT);
 
-        service.clearAdjustment();
+        sendBroadcast(intent);
 
     }
 
     public void restoreAdjustment() {
 
-        AdjustmentService service = AdjustmentService.getInstance();
-        if (service == null) {
-            Log.e("minun", "Accessibility service not found");
-            return;
+        {
+            Intent intent = new Intent(AdjustmentService.ACCESSIBILITY_ADJUST);
+            intent.putExtra("action", AdjustmentService.SET_ADJUSTMENT);
+            intent.putExtra("r", this.r);
+            intent.putExtra("g", this.g);
+            intent.putExtra("b", this.b);
+            intent.putExtra("a", this.a);
+            intent.putExtra("update", true);
+            this.sendBroadcast(intent);
         }
 
-        service.restoreAdjustment();
+        {
+            Intent intent = new Intent(AdjustmentService.ACCESSIBILITY_ADJUST);
+            intent.putExtra("action", AdjustmentService.RESTORE_ADJUSTMENT);
+            sendBroadcast(intent);
+        }
 
     }
 
