@@ -2,7 +2,7 @@
 
     const logic = Object.create(null);
 
-    let colors = [0, 0, 0, 0];
+    let colors = [0, 0, 0, 0, 0];
 
     let permissinCallbacks = [];
 
@@ -57,16 +57,21 @@
 
     };
 
-    logic.updateLocalAdjustment = async function (r, g, b, a) {
+    logic.updateLocalAdjustment = async function (r, g, b, a, notch) {
 
-        colors = [r, g, b, a];
+        colors = [r, g, b, a, notch];
 
     };
 
-    logic.saveAdjustment = async function () {
+    logic.saveAdjustment = async function (force) {
+
+        if (colors[4] && (!force)) {
+            document.querySelector("#warning").classList.add("visible");
+            return;
+        }
 
         try {
-            await window.MinunZTEAxon30API.setAdjustment(colors[0], colors[1], colors[2], colors[3], false);
+            await window.MinunZTEAxon30API.setAdjustment(colors[0], colors[1], colors[2], colors[3], colors[4], false);
         } catch (error) {
             console.error(error);
         }
@@ -76,6 +81,12 @@
     logic.getCurrentAdjustment = async function () {
 
         return await window.MinunZTEAxon30API.getCurrentAdjustment();
+
+    };
+
+    logic.getCurrentDeviceStates = async function () {
+
+        return await window.MinunZTEAxon30API.getCurrentDeviceStates();
 
     };
 

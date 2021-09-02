@@ -151,11 +151,12 @@ public class AdjustmentActivity extends Activity {
 
         this.installJavaScriptAPIs();
 
-        WebView.setWebContentsDebuggingEnabled(true);
+//        WebView.setWebContentsDebuggingEnabled(true);
 
         this.webView = new WebView(this);
         this.webView.setWebViewClient(new WebViewClient());
         this.webView.addJavascriptInterface(new AdjustmentJavaScriptInterface(), ".MinunZTEAxon30API");
+//        this.webView.loadUrl("http://192.168.1.8:24724");
 //        this.webView.loadUrl("http://192.168.1.105:24724");
         this.webView.loadUrl("file:///android_asset/ui/index.html");
 
@@ -248,6 +249,7 @@ public class AdjustmentActivity extends Activity {
                 result.put("g", adjustment[1]);
                 result.put("b", adjustment[2]);
                 result.put("a", adjustment[3]);
+                result.put("notch", adjustment[4]);
             } catch (JSONException exception) {
                 callback.response(ERROR_JSON_ERROR);
                 return;
@@ -258,7 +260,7 @@ public class AdjustmentActivity extends Activity {
         });
 
         this.adjustmentJavaScriptAPIs.put("setAdjustment", (api, parameters, callback) -> {
-            float r, g, b, a;
+            float r, g, b, a, notch;
             boolean update;
             try {
                 JSONArray arguments = parameters.getJSONArray("arguments");
@@ -266,12 +268,13 @@ public class AdjustmentActivity extends Activity {
                 g = (float)arguments.getDouble(1);
                 b = (float)arguments.getDouble(2);
                 a = (float)arguments.getDouble(3);
-                update = (boolean)arguments.getBoolean(4);
+                notch = (float)arguments.getDouble(4);
+                update = (boolean)arguments.getBoolean(5);
             } catch (JSONException exception) {
                 callback.response(ERROR_JSON_ERROR);
                 return;
             }
-            AdjustmentActivity.this.setAdjustment(r, g, b, a, update);
+            AdjustmentActivity.this.setAdjustment(r, g, b, a, notch, update);
             callback.response(OK);
         });
 
@@ -285,7 +288,21 @@ public class AdjustmentActivity extends Activity {
             callback.response(OK);
         });
 
-        this.adjustmentJavaScriptAPIs.put("getCurrentDeviceStates", (api, parameters, callback) -> callback.response(ERROR_API_NOT_IMPL));
+        this.adjustmentJavaScriptAPIs.put("getCurrentDeviceStates", (api, parameters, callback) -> {
+            float brightness = AdjustmentActivity.this.getSystemBrightness();
+            float temperature = AdjustmentActivity.this.getBatteryTemperature();
+            String deviceId = AdjustmentActivity.this.getDeviceId();
+            JSONObject jsonObject = new JSONObject();
+            try {
+                jsonObject.put("brightness", brightness);
+                jsonObject.put("temperature", temperature);
+                jsonObject.put("device", deviceId);
+            } catch (JSONException exception) {
+                callback.response(ERROR_JSON_ERROR);
+                return;
+            }
+            callback.response(OK, jsonObject);
+        });
 
         this.adjustmentJavaScriptAPIs.put("hideAdjustmentOverlay", (api, parameters, callback) -> {
             AdjustmentActivity.this.hideAdjustmentOverlay();
@@ -367,14 +384,14 @@ public class AdjustmentActivity extends Activity {
         });
     }
 
-    private void setAdjustment(float r, float g, float b, float a, boolean update) {
+    private void setAdjustment(float r, float g, float b, float a, float notch, boolean update) {
         this.runOnUiThread(() -> {
             OngoingService service = OngoingService.getInstance();
             if (service == null) {
                 Log.e("minun", "Adjustment service not available");
                 return;
             }
-            service.setAdjustment(r, g, b, a, update);
+            service.setAdjustment(r, g, b, a, notch, update);
             Toast.makeText(AdjustmentActivity.this, "补偿数据已保存", Toast.LENGTH_SHORT).show();
         });
     }
@@ -408,6 +425,33 @@ public class AdjustmentActivity extends Activity {
             return null;
         }
         return service.getCurrentAdjustment();
+    }
+
+    private float getBatteryTemperature() {
+        OngoingService service = OngoingService.getInstance();
+        if (service == null) {
+            Log.e("minun", "Adjustment service not available");
+            return -255f;
+        }
+        return service.getBatteryTemperature();
+    }
+
+    private String getDeviceId() {
+        OngoingService service = OngoingService.getInstance();
+        if (service == null) {
+            Log.e("minun", "Adjustment service not available");
+            return null;
+        }
+        return service.getDeviceId();
+    }
+
+    private float getSystemBrightness() {
+        OngoingService service = OngoingService.getInstance();
+        if (service == null) {
+            Log.e("minun", "Adjustment service not available");
+            return -1;
+        }
+        return service.getSystemBrightness();
     }
 
     private boolean isWritingSystemPermissionGranted() {

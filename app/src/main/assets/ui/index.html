@@ -2,7 +2,7 @@
     <head>
         <meta charset="utf-8"/>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"/>
-        <title>AXON 30 Under Screen UI Adjustment</title>
+        <title>A30屏下微调</title>
         <link rel="stylesheet" href="./styles.css"/>
         <script src="./scripts/api.js"></script>
         <script src="./scripts/logic.js"></script>
@@ -12,6 +12,7 @@
         <div id="test-background"></div>
         <div id="form">
             <h1>屏下区域色彩微调</h1>
+            <div id="states">设备ID：<span id="current-device-id">未知</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;当前温度：<span id="current-temperature">未知</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;亮度：<span id="current-brightness">未知</span></div>
             <div id="dashboard">
                 <div class="label" id="slider-r-caption"><span class="decrease" id="slider-r-decrease"><span class="symbol"></span></span><span class="text" id="slider-r-label">红色</span><span class="increase" id="slider-r-increase"><span class="symbol"></span></span></div>
                 <div class="slider" id="slider-r">
@@ -33,6 +34,12 @@
                 </div>
                 <div class="label" id="slider-a-caption"><span class="decrease" id="slider-a-decrease"><span class="symbol"></span></span><span class="text" id="slider-a-label">不透明度</span><span class="increase" id="slider-a-increase"><span class="symbol"></span></span></div>
                 <div class="slider" id="slider-a">
+                    <div class="progress">
+                        <div class="handle"></div>
+                    </div>
+                </div>
+                <div class="label" id="slider-notch-caption"><span class="decrease" id="slider-notch-decrease"><span class="symbol"></span></span><span class="text" id="slider-notch-label">挖孔与刘海模拟</span><span class="increase" id="slider-notch-increase"><span class="symbol"></span></span></div>
+                <div class="slider" id="slider-notch">
                     <div class="progress">
                         <div class="handle"></div>
                     </div>
@@ -61,7 +68,7 @@
                 <div style="display: flex;">
                     <div class="button" style="background-color: transparent;" onclick="document.querySelector('#version').classList.add('visible')">历史</div>
                     <div class="button" style="background-color: transparent; margin-left: 0;" onclick="document.querySelector('#help').classList.add('visible')">帮助</div>
-                    <div class="button" style="margin-left: 0;" onclick="MinunZTEAxon30Logic.saveAdjustment()">保存</div>
+                    <div class="button" style="margin-left: 0;" onclick="MinunZTEAxon30Logic.saveAdjustment(false)">保存</div>
                 </div>
             </div>
         </div>
@@ -86,9 +93,20 @@
                 <div class="button" style="margin-right: 0px;" onclick="document.querySelector('#help').classList.remove('visible')">我知道了</div>
             </div>
         </div>
+        <div id="warning" class="mask">
+            <div class="form">
+                <h2>挖孔与刘海模拟确认</h2>
+                <div style="line-height: 20px;">本功能仅供娱乐使用，且长时间模拟可能会造成屏幕部分区域老化不均匀的现象。超长时间模拟的情况下甚至可能会造成烧屏，请自觉限制使用。</div>
+                <div style="display: flex;">
+                    <div class="button" style="margin-right: 0px; background-color: transparent;" onclick="document.querySelector('#warning').classList.remove('visible'); MinunZTEAxon30Logic.saveAdjustment(true);">我知道了，继续</div>
+                    <div class="button" style="margin-right: 0px;" onclick="document.querySelector('#warning').classList.remove('visible');">取消</div>
+                </div>
+            </div>
+        </div>
         <div id="version" class="mask">
             <div class="form">
                 <h2>版本历史</h2>
+                <div>210903.1: 增加刘海屏模拟支持</div>
                 <div>210902.1: 增加步进调整支持</div>
                 <div>210901.1: 改为无障碍全界面补偿</div>
                 <div>210830.3: 增加了保存微调数据支持</div>
@@ -97,8 +115,28 @@
                 <div class="button" style="margin-right: 0px;" onclick="document.querySelector('#version').classList.remove('visible')">我知道了</div>
             </div>
         </div>
-        <div id="sample-hole" style="background-color: #00000011;"></div>
+        <div id="sample-hole"></div>
+        <div id="sample-mi"></div>
+        <div id="sample-notch">
+            <svg id="sample-notch-left" viewBox="0 0 100 200" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <path d="M99.9989 200L99.9979 200C86.1911 200 74.4062 195.119 64.6433 185.356C54.8804 175.593 49.9989 163.808 49.9989 150.001L49.9989 49.999L49.999 49.944C49.9838 36.1479 45.0958 24.3749 35.3352 14.6249C25.5745 4.87497 13.7961 0 0 0L99.9989 0L99.9989 200L99.9989 200Z" transform="translate(0.0010986328 0)" fill="#000000" fill-rule="evenodd" stroke="none" />
+            </svg>
+            <svg id="sample-notch-center" viewBox="0 0 100 200" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <path d="M100 200L100 0L0 0L0 200L100 200Z" fill="#000000" fill-rule="evenodd" stroke="none" />
+            </svg>
+            <svg id="sample-notch-right" viewBox="0 0 100 200" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <path d="M99.9989 200L99.9979 200C86.1911 200 74.4062 195.119 64.6433 185.356C54.8804 175.593 49.9989 163.808 49.9989 150.001L49.9989 49.999L49.999 49.944C49.9838 36.1479 45.0958 24.3749 35.3352 14.6249C25.5745 4.87497 13.7961 0 0 0L99.9989 0L99.9989 200L99.9989 200Z" transform="matrix(-1 0 0 1 100 0)" fill="#000000" fill-rule="evenodd" stroke="none" />
+            </svg>
+        </div>
+        <div id="sample-corner">
+            <svg id="sample-corner-left" viewBox="0 0 50 50" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0 0L49.9989 0L49.9989 49.9021C49.9739 36.1241 45.086 24.365 35.3352 14.6249C25.5745 4.87497 13.7961 0 0 0L0 0Z" transform="matrix(-1 0 0 1 50 0)" id="Vector-shape-2" fill="#000000" fill-rule="evenodd" stroke="none" />
+            </svg>
+            <svg id="sample-corner-right" viewBox="0 0 50 50" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0 0L49.9989 0L49.9989 49.9021C49.9739 36.1241 45.086 24.365 35.3352 14.6249C25.5745 4.87497 13.7961 0 0 0L0 0Z" transform="translate(0.0010986328 0)" id="Vector-shape-2" fill="#000000" fill-rule="evenodd" stroke="none" />
+            </svg>
+        </div>
         <div id="reload-button" onclick="document.location.reload()">重置</div>
-        <div id="copyright">Made by minun, version 210902.1</div>
+        <div id="copyright">Made by minun, version 210903.1</div>
     </body>
 </html>

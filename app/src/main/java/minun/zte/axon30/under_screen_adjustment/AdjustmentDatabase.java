@@ -8,12 +8,13 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
 import java.util.Date;
+import java.util.UUID;
 
 public class AdjustmentDatabase extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "adjustment";
 
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
 
     public AdjustmentDatabase(Context context) {
 
@@ -37,7 +38,8 @@ public class AdjustmentDatabase extends SQLiteOpenHelper {
                        "r float, " +
                        "g float, " +
                        "b float, " +
-                       "a float" +
+                       "a float, " +
+                       "notch float " +
                    ")");
 
     }
@@ -45,12 +47,20 @@ public class AdjustmentDatabase extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 
+        switch (oldVersion) {
+            case 1: {
+                db.execSQL("alter table adjustment_data add column notch float");
+                db.execSQL("update adjustment_data set notch = 0");
+                break;
+            }
+        }
+
     }
 
-    public void recordData(double time, float temperature, float brightness, float r, float g, float b, float a) {
+    public void recordData(double time, float temperature, float brightness, float r, float g, float b, float a, float notch) {
 
         this.getWritableDatabase().execSQL(
-                "insert into adjustment_data(time, temperature, brightness, r, g, b, a) values(?, ?, ?, ?, ?, ?, ?)",
+                "insert into adjustment_data(time, temperature, brightness, r, g, b, a, notch) values(?, ?, ?, ?, ?, ?, ?, ?)",
                 new Object[]{time, temperature, brightness, r, g, b, a});
 
     }

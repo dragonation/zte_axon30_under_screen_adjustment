@@ -52,8 +52,9 @@ public class AdjustmentService extends AccessibilityService {
                     float g = intent.getFloatExtra("g", 0f);
                     float b = intent.getFloatExtra("b", 0f);
                     float a = intent.getFloatExtra("a", 0f);
+                    float notch = intent.getFloatExtra("notch", 0f);
                     boolean update = intent.getBooleanExtra("update", false);
-                    service.setAdjustment(r, g, b, a, update);
+                    service.setAdjustment(r, g, b, a, notch, update);
                     break;
                 }
                 case CLEAR_ADJUSTMENT: { service.clearAdjustment(); break; }
@@ -94,8 +95,12 @@ public class AdjustmentService extends AccessibilityService {
     private AdjustmentServiceReceiver receiver;
 
     private WindowManager windowManager;
-    private WindowManager.LayoutParams layoutParams;
+
+    private WindowManager.LayoutParams adjustmentLayoutParams;
     private AdjustmentView adjustmentView;
+
+    private WindowManager.LayoutParams notchLayoutParams;
+    private NotchView notchView;
 
     private OngoingService.DisplayOrientation displayOrientation;
 
@@ -103,6 +108,7 @@ public class AdjustmentService extends AccessibilityService {
     float g;
     float b;
     float a;
+    float notch;
 
     @Override
     protected void onServiceConnected() {
@@ -115,6 +121,7 @@ public class AdjustmentService extends AccessibilityService {
         this.g = 0;
         this.b = 0;
         this.a = 0;
+        this.notch = 0;
 
         if (this.receiver == null) {
             this.receiver = new AdjustmentServiceReceiver();
@@ -152,6 +159,11 @@ public class AdjustmentService extends AccessibilityService {
             adjustmentView = null;
         }
 
+        if (notchView != null) {
+            windowManager.removeView(notchView);
+            notchView = null;
+        }
+
     }
 
     public void syncDisplayOrientation(OngoingService.DisplayOrientation displayOrientation) {
@@ -167,46 +179,75 @@ public class AdjustmentService extends AccessibilityService {
             windowManager = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
         }
 
-        if (layoutParams == null) {
-            layoutParams = new WindowManager.LayoutParams();
-            layoutParams.type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY;
-            layoutParams.format = PixelFormat.RGBA_8888;
-            layoutParams.flags = (
+        if (adjustmentLayoutParams == null) {
+            adjustmentLayoutParams = new WindowManager.LayoutParams();
+            adjustmentLayoutParams.type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY;
+            adjustmentLayoutParams.format = PixelFormat.RGBA_8888;
+            adjustmentLayoutParams.flags = (
                     WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED |
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
                     WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS |
                     WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE |
                     WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
-            layoutParams.rotationAnimation = WindowManager.LayoutParams.ROTATION_ANIMATION_JUMPCUT;
-            layoutParams.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING;
-            layoutParams.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
-            layoutParams.x = 0;
-            layoutParams.y = 0;
+            adjustmentLayoutParams.rotationAnimation = WindowManager.LayoutParams.ROTATION_ANIMATION_JUMPCUT;
+            adjustmentLayoutParams.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING;
+            adjustmentLayoutParams.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
+            adjustmentLayoutParams.x = 0;
+            adjustmentLayoutParams.y = 0;
+        }
+
+        if (notchLayoutParams == null) {
+            notchLayoutParams = new WindowManager.LayoutParams();
+            notchLayoutParams.type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY;
+            notchLayoutParams.format = PixelFormat.RGBA_8888;
+            notchLayoutParams.flags = (
+                    WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED |
+                            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
+                            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS |
+                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE |
+                            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
+            notchLayoutParams.rotationAnimation = WindowManager.LayoutParams.ROTATION_ANIMATION_JUMPCUT;
+            notchLayoutParams.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING;
+            notchLayoutParams.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
+            notchLayoutParams.x = 0;
+            notchLayoutParams.y = 0;
         }
 
         switch (this.displayOrientation) {
             case PORTRAIT: {
-                layoutParams.gravity = Gravity.TOP;
-                layoutParams.width = 102;
-                layoutParams.height = 60;
+                adjustmentLayoutParams.gravity = Gravity.TOP;
+                adjustmentLayoutParams.width = 102;
+                adjustmentLayoutParams.height = 60;
+                notchLayoutParams.gravity = Gravity.TOP;
+                notchLayoutParams.width = 1080;
+                notchLayoutParams.height = 204;
                 break;
             }
             case PORTRAIT_UPSIDE_DOWN: {
-                layoutParams.gravity = Gravity.BOTTOM;
-                layoutParams.width = 102;
-                layoutParams.height = 60;
+                adjustmentLayoutParams.gravity = Gravity.BOTTOM;
+                adjustmentLayoutParams.width = 102;
+                adjustmentLayoutParams.height = 60;
+                notchLayoutParams.gravity = Gravity.BOTTOM;
+                notchLayoutParams.width = 1080;
+                notchLayoutParams.height = 204;
                 break;
             }
             case LANDSCAPE_UPSIDE_LEFT: {
-                layoutParams.gravity = Gravity.LEFT;
-                layoutParams.width = 60;
-                layoutParams.height = 102;
+                adjustmentLayoutParams.gravity = Gravity.LEFT;
+                adjustmentLayoutParams.width = 60;
+                adjustmentLayoutParams.height = 102;
+                notchLayoutParams.gravity = Gravity.LEFT;
+                notchLayoutParams.width = 204;
+                notchLayoutParams.height = 1080;
                 break;
             }
             case LANDSCAPE_UPSIDE_RIGHT: {
-                layoutParams.gravity = Gravity.RIGHT;
-                layoutParams.width = 60;
-                layoutParams.height = 102;
+                adjustmentLayoutParams.gravity = Gravity.RIGHT;
+                adjustmentLayoutParams.width = 60;
+                adjustmentLayoutParams.height = 102;
+                notchLayoutParams.gravity = Gravity.RIGHT;
+                notchLayoutParams.width = 204;
+                notchLayoutParams.height = 1080;
                 break;
             }
         }
@@ -215,10 +256,20 @@ public class AdjustmentService extends AccessibilityService {
             adjustmentView = new AdjustmentView(this);
         }
         if (adjustmentView.getParent() != null) {
-            windowManager.updateViewLayout(adjustmentView, layoutParams);
+            windowManager.updateViewLayout(adjustmentView, adjustmentLayoutParams);
             adjustmentView.setVisibility(View.VISIBLE);
         } else {
-            windowManager.addView(adjustmentView, layoutParams);
+            windowManager.addView(adjustmentView, adjustmentLayoutParams);
+        }
+
+        if (notchView == null) {
+            notchView = new NotchView(this);
+        }
+        if (notchView.getParent() != null) {
+            windowManager.updateViewLayout(notchView, notchLayoutParams);
+            notchView.setVisibility(View.VISIBLE);
+        } else {
+            windowManager.addView(notchView, notchLayoutParams);
         }
 
         if (clear) {
@@ -227,12 +278,13 @@ public class AdjustmentService extends AccessibilityService {
 
     }
 
-    public void setAdjustment(float r, float g, float b, float a, boolean update) {
+    public void setAdjustment(float r, float g, float b, float a, float notch, boolean update) {
 
         this.r = r;
         this.g = g;
         this.b = b;
         this.a = a;
+        this.notch = notch;
 
         if (update) {
             this.restoreAdjustment();
@@ -242,21 +294,25 @@ public class AdjustmentService extends AccessibilityService {
 
     public void clearAdjustment() {
 
-        if (this.adjustmentView == null) {
-            return;
+        if (this.adjustmentView != null) {
+            this.adjustmentView.setAdjustment(0, 0 , 0, 0);
         }
 
-        this.adjustmentView.setAdjustment(0, 0 , 0, 0);
+        if (this.notchView != null) {
+            this.notchView.setNotch(0);
+        }
 
     }
 
     public void restoreAdjustment() {
 
-        if (this.adjustmentView == null) {
-            return;
+        if (this.adjustmentView != null) {
+            this.adjustmentView.setAdjustment(this.r, this.g, this.b, this.a);
         }
 
-        this.adjustmentView.setAdjustment(this.r, this.g, this.b, this.a);
+        if (this.notchView != null) {
+            this.notchView.setNotch(this.notch);
+        }
 
     }
 

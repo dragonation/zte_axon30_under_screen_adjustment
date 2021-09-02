@@ -36,6 +36,7 @@ import org.json.JSONObject;
 
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 public class OngoingService extends Service {
 
@@ -96,10 +97,13 @@ public class OngoingService extends Service {
 
     private BrightnessObserver brightnessObserver;
 
+    private String deviceId;
+
     private float r;
     private float g;
     private float b;
     private float a;
+    private float notch;
 
     private AdjustmentDatabase adjustmentDatabase;
 
@@ -124,9 +128,15 @@ public class OngoingService extends Service {
         this.g = 0.0f;
         this.b = 0.266f;
         this.a = 0.025f;
+        this.notch = 0.0f;
 
         // load data from database
         this.adjustmentDatabase = new AdjustmentDatabase(this);
+        this.deviceId = this.adjustmentDatabase.getPreference("device_id");
+        if (this.deviceId == null) {
+            this.deviceId = UUID.randomUUID().toString().substring(0, 8);
+            this.adjustmentDatabase.updatePreference("device_id", this.deviceId);
+        }
         String latestAdjustment = this.adjustmentDatabase.getPreference("latest_adjustment");
         if (latestAdjustment != null) {
             try {
@@ -135,6 +145,9 @@ public class OngoingService extends Service {
                 this.g = (float)jsonObject.getDouble("g");
                 this.b = (float)jsonObject.getDouble("b");
                 this.a = (float)jsonObject.getDouble("a");
+                if (jsonObject.has("notch")) {
+                    this.notch = (float) jsonObject.getDouble("notch");
+                }
             } catch (JSONException exception) {
                 Log.e("minun", "Latest adjustment data damaged, using default preset");
             }
@@ -355,12 +368,13 @@ public class OngoingService extends Service {
 
     }
 
-    public void setAdjustment(float r, float g, float b, float a, boolean update) {
+    public void setAdjustment(float r, float g, float b, float a, float notch, boolean update) {
 
         this.r = r;
         this.g = g;
         this.b = b;
         this.a = a;
+        this.notch = notch;
 
         try {
             JSONObject jsonObject = new JSONObject();
@@ -368,6 +382,7 @@ public class OngoingService extends Service {
             jsonObject.put("g", this.g);
             jsonObject.put("b", this.b);
             jsonObject.put("a", this.a);
+            jsonObject.put("notch", this.notch);
             this.adjustmentDatabase.updatePreference("latest_adjustment", jsonObject.toString());
         } catch (JSONException exception) {
             Log.e("minun", "Failed to generate preferences");
@@ -380,7 +395,8 @@ public class OngoingService extends Service {
                 this.r,
                 this.g,
                 this.b,
-                this.a);
+                this.a,
+                this.notch);
 
         Intent intent = new Intent(AdjustmentService.ACCESSIBILITY_ADJUST);
 
@@ -389,6 +405,7 @@ public class OngoingService extends Service {
         intent.putExtra("g", this.g);
         intent.putExtra("b", this.b);
         intent.putExtra("a", this.a);
+        intent.putExtra("notch", this.notch);
         intent.putExtra("update", update);
 
         this.sendBroadcast(intent);
@@ -413,6 +430,7 @@ public class OngoingService extends Service {
             intent.putExtra("g", this.g);
             intent.putExtra("b", this.b);
             intent.putExtra("a", this.a);
+            intent.putExtra("notch", this.notch);
             intent.putExtra("update", true);
             this.sendBroadcast(intent);
         }
@@ -427,11 +445,17 @@ public class OngoingService extends Service {
 
     public float[] getCurrentAdjustment() {
 
-        return new float[] {this.r, this.g, this.b, this.a};
+        return new float[] {this.r, this.g, this.b, this.a, this.notch};
 
     }
 
-    private float getSystemBrightness() {
+    public String getDeviceId() {
+
+        return this.deviceId;
+
+    }
+
+    public float getSystemBrightness() {
 
         int systemBrightness = 0;
         try {
@@ -445,7 +469,7 @@ public class OngoingService extends Service {
 
     }
 
-    private float getBatteryTemperature() {
+    public float getBatteryTemperature() {
 
         return this.batteryTemperature;
 
