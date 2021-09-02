@@ -448,15 +448,14 @@ public class AdjustmentActivity extends Activity {
 
     private boolean isOverlayPermissionGranted() {
 
-        AccessibilityManager manager = (AccessibilityManager)this.getSystemService(Context.ACCESSIBILITY_SERVICE);
-        List<AccessibilityServiceInfo> serviceInfoList = manager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
-        for (AccessibilityServiceInfo serviceInfo : serviceInfoList) {
-            String id = serviceInfo.getId();
-            if ("minun.zte.axon30.under_screen_adjustment/.AdjustmentService".equals(id)) {
-                return true;
-            }
+        boolean granted = OngoingService.isOverlayPermissionGranted(this);
+
+        OngoingService service = OngoingService.getInstance();
+        if (service != null) {
+            service.refreshNotification();
         }
-        return false;
+
+        return granted;
 
     }
 

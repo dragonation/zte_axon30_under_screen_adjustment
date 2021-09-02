@@ -69,6 +69,34 @@ window.addEventListener("load", async function () {
         let from = null;
         let fromPointerID = null;
 
+        document.querySelector(`#${id}-caption .decrease`).addEventListener("click", function (event) {
+
+            let from = (value - 60) / 240;
+
+            from = (Math.round(from * 1000) - 1) / 1000;
+
+            value = from * 240 + 60;
+            if (value < 60) {
+                value = 60;
+            }
+            updateValue();
+
+        });
+
+        document.querySelector(`#${id}-caption .increase`).addEventListener("click", function (event) {
+
+            let from = (value - 60) / 240;
+
+            from = (Math.round(from * 1000) + 1) / 1000;
+
+            value = from * 240 + 60;
+            if (value > 300) {
+                value = 300;
+            }
+            updateValue();
+
+        });
+
         slider.addEventListener("pointerdown", function (event) {
             if (fromPointerID !== null) {
                 return;

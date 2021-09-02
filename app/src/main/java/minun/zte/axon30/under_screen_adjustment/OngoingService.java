@@ -1,5 +1,6 @@
 package minun.zte.axon30.under_screen_adjustment;
 
+import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.*;
 
 import android.content.BroadcastReceiver;
@@ -29,10 +30,12 @@ import android.view.Display;
 import android.view.OrientationEventListener;
 import android.view.Surface;
 
+import android.view.accessibility.AccessibilityManager;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Date;
+import java.util.List;
 
 public class OngoingService extends Service {
 
@@ -67,6 +70,21 @@ public class OngoingService extends Service {
 
     private static OngoingService ongoingService;
 
+    public static boolean isOverlayPermissionGranted(Context context) {
+
+        AccessibilityManager manager = (AccessibilityManager)context.getSystemService(Context.ACCESSIBILITY_SERVICE);
+        List<AccessibilityServiceInfo> serviceInfoList = manager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
+        for (AccessibilityServiceInfo serviceInfo : serviceInfoList) {
+            String id = serviceInfo.getId();
+            if ("minun.zte.axon30.under_screen_adjustment/.AdjustmentService".equals(id)) {
+                return true;
+            }
+        }
+
+        return false;
+
+    }
+
     private DisplayManager displayManager;
 
     private DisplayOrientation displayOrientation;
@@ -83,8 +101,9 @@ public class OngoingService extends Service {
     private float b;
     private float a;
 
-    private IBinder iBinder;
     private AdjustmentDatabase adjustmentDatabase;
+
+    private boolean lastOverlayPermissionGranted;
 
     public static OngoingService getInstance() {
         return ongoingService;
@@ -98,6 +117,7 @@ public class OngoingService extends Service {
         ongoingService = this;
 
         this.displayOrientation = DisplayOrientation.PORTRAIT;
+        this.lastOverlayPermissionGranted = false;
 
         // default preset adjustment
         this.r = 0.361f;
@@ -149,16 +169,9 @@ public class OngoingService extends Service {
 
             manager.createNotificationChannel(channel);
 
-            Notification.Builder builder = new Notification.Builder(this, "minun");
+            this.lastOverlayPermissionGranted = OngoingService.isOverlayPermissionGranted(this);
 
-            builder.setContentTitle("A30屏下微调");
-            builder.setContentText("点按对重新调整屏下微调参数");
-            builder.setSmallIcon(R.mipmap.notification_icon);
-
-            PendingIntent contentIntent = PendingIntent.getActivity(this, 0, new Intent(this, AdjustmentActivity.class), 0);
-            builder.setContentIntent(contentIntent);
-
-            Notification notification = builder.build();
+            Notification notification = this.buildForegroundNotification(this.lastOverlayPermissionGranted);
 
             this.startForeground(ONGOING_ID, notification);
 
@@ -229,6 +242,43 @@ public class OngoingService extends Service {
 
         super.onDestroy();
 
+    }
+
+    public void refreshNotification() {
+
+        boolean granted = OngoingService.isOverlayPermissionGranted(this);
+        if (granted == this.lastOverlayPermissionGranted) {
+            return;
+        }
+
+        this.lastOverlayPermissionGranted = granted;
+
+        Notification notification = this.buildForegroundNotification(granted);
+
+        NotificationManager manager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+
+        manager.notify(ONGOING_ID, notification);
+
+    }
+
+    private Notification buildForegroundNotification(boolean granted) {
+
+        Notification.Builder builder = new Notification.Builder(this, "minun");
+
+        if (granted) {
+            builder.setContentTitle("已开启无障碍屏下补偿");
+        } else {
+            builder.setContentTitle("等待开启无障碍服务");
+        }
+        builder.setContentText("点按可以重新调整屏下显示补偿微调的参数");
+        builder.setSmallIcon(R.mipmap.notification_icon);
+
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, new Intent(this, AdjustmentActivity.class), 0);
+        builder.setContentIntent(contentIntent);
+
+        Notification notification = builder.build();
+
+        return notification;
     }
 
     public void refreshDisplayOrientation() {

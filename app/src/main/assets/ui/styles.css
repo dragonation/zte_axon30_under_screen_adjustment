@@ -109,8 +109,16 @@ h1 {
 
 .label {
     margin: 20px;
-    margin-bottom: 10px;
+    margin-top: 24px;
+    margin-bottom: 14px;
     font-size: 16px;
+    height: 16px;
+    line-height: 16px;
+    display: flex;
+}
+
+.label .text {
+    flex-grow: 1;
 }
 
 .slider {
@@ -189,6 +197,80 @@ h1 {
     padding: 0 20px;
     border-radius: 36px;
     margin: 40px 20px 20px auto;
+}
+
+.decrease {
+    display: inline-block;
+    position: relative;
+    width: 30px;
+    height: 30px;
+    vertical-align: top;
+    margin-top: -7px;
+    margin-left: -4px;
+    flex-shrink: 0;
+}
+
+.decrease:before {
+    box-shadow: 0 0 0 1px #ddd;
+    border-radius: 30px;
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 5px;
+    width: 20px;
+    height: 20px;
+}
+
+.decrease .symbol:before {
+    position: absolute;
+    width: 12px;
+    height: 2px;
+    left: 9px;
+    top: 14px;
+    background-color: #ddd;
+    content: '';
+}
+
+.increase {
+    display: inline-block;
+    position: relative;
+    width: 30px;
+    height: 30px;
+    vertical-align: top;
+    margin-top: -7px;
+    flex-shrink: 0;
+}
+
+.increase:before {
+    box-shadow: 0 0 0 1px #ddd;
+    border-radius: 30px;
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 5px;
+    width: 20px;
+    height: 20px;
+}
+
+.increase .symbol:before {
+    position: absolute;
+    width: 12px;
+    height: 2px;
+    left: 9px;
+    top: 14px;
+    background-color: #ddd;
+    content: '';
+}
+
+.increase .symbol:after {
+    position: absolute;
+    width: 12px;
+    height: 2px;
+    left: 9px;
+    top: 14px;
+    background-color: #ddd;
+    content: '';
+    transform: rotate(90deg);
 }
 
 #reload-button {

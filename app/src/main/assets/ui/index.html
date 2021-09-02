@@ -13,25 +13,25 @@
         <div id="form">
             <h1>屏下区域色彩微调</h1>
             <div id="dashboard">
-                <div class="label" id="slider-r-label">红色</div>
+                <div class="label" id="slider-r-caption"><span class="decrease" id="slider-r-decrease"><span class="symbol"></span></span><span class="text" id="slider-r-label">红色</span><span class="increase" id="slider-r-increase"><span class="symbol"></span></span></div>
                 <div class="slider" id="slider-r">
                     <div class="progress">
                         <div class="handle"></div>
                     </div>
                 </div>
-                <div class="label" id="slider-g-label">绿色</div>
+                <div class="label" id="slider-g-caption"><span class="decrease" id="slider-g-decrease"><span class="symbol"></span></span><span class="text" id="slider-g-label">绿色</span><span class="increase" id="slider-g-increase"><span class="symbol"></span></span></div>
                 <div class="slider" id="slider-g">
                     <div class="progress">
                         <div class="handle"></div>
                     </div>
                 </div>
-                <div class="label" id="slider-b-label">蓝色</div>
+                <div class="label" id="slider-b-caption"><span class="decrease" id="slider-b-decrease"><span class="symbol"></span></span><span class="text" id="slider-b-label">蓝色</span><span class="increase" id="slider-b-increase"><span class="symbol"></span></span></div>
                 <div class="slider" id="slider-b">
                     <div class="progress">
                         <div class="handle"></div>
                     </div>
                 </div>
-                <div class="label" id="slider-a-label">不透明度</div>
+                <div class="label" id="slider-a-caption"><span class="decrease" id="slider-a-decrease"><span class="symbol"></span></span><span class="text" id="slider-a-label">不透明度</span><span class="increase" id="slider-a-increase"><span class="symbol"></span></span></div>
                 <div class="slider" id="slider-a">
                     <div class="progress">
                         <div class="handle"></div>
@@ -89,6 +89,7 @@
         <div id="version" class="mask">
             <div class="form">
                 <h2>版本历史</h2>
+                <div>210902.1: 增加步进调整支持</div>
                 <div>210901.1: 改为无障碍全界面补偿</div>
                 <div>210830.3: 增加了保存微调数据支持</div>
                 <div>210830.2: 增加了横屏界面的支持</div>
@@ -98,6 +99,6 @@
         </div>
         <div id="sample-hole" style="background-color: #00000011;"></div>
         <div id="reload-button" onclick="document.location.reload()">重置</div>
-        <div id="copyright">Made by minun, version 210901.1</div>
+        <div id="copyright">Made by minun, version 210902.1</div>
     </body>
 </html>
