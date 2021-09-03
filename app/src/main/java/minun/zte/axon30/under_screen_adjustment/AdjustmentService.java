@@ -13,6 +13,7 @@ import android.content.pm.ActivityInfo;
 
 import android.graphics.PixelFormat;
 
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
@@ -35,6 +36,20 @@ public class AdjustmentService extends AccessibilityService {
     public static final int ORIENTATION_PORTRAIT_UPSIDE_DOWN = 2;
     public static final int ORIENTATION_LANDSCAPE_UPSIDE_LEFT = 3;
     public static final int ORIENTATION_LANDSCAPE_UPSIDE_RIGHT = 4;
+
+    private class LockScreenReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (Intent.ACTION_SCREEN_OFF.equals(action)) {
+                AdjustmentService.this.hideViews();
+            } else if (Intent.ACTION_SCREEN_ON.equals(action)) {
+                AdjustmentService.this.showViews();
+            } else if (Intent.ACTION_USER_PRESENT.equals(action)) {
+                AdjustmentService.this.showViews();
+            }
+        }
+    }
 
     private class AdjustmentServiceReceiver extends BroadcastReceiver {
         @Override
@@ -93,6 +108,7 @@ public class AdjustmentService extends AccessibilityService {
     }
 
     private AdjustmentServiceReceiver receiver;
+    private LockScreenReceiver lockScreenReceiver;
 
     private WindowManager windowManager;
 
@@ -123,10 +139,20 @@ public class AdjustmentService extends AccessibilityService {
         this.a = 0;
         this.notch = 0;
 
+        if (this.lockScreenReceiver == null) {
+            this.lockScreenReceiver = new LockScreenReceiver();
+            IntentFilter intentFilter = new IntentFilter();
+            intentFilter.addAction(Intent.ACTION_SCREEN_ON);
+            intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
+            intentFilter.addAction(Intent.ACTION_USER_PRESENT);
+            this.registerReceiver(this.lockScreenReceiver, intentFilter);
+        }
+
         if (this.receiver == null) {
             this.receiver = new AdjustmentServiceReceiver();
             registerReceiver(this.receiver, new IntentFilter(ACCESSIBILITY_ADJUST));
         }
+
     }
 
     @Override
@@ -136,6 +162,10 @@ public class AdjustmentService extends AccessibilityService {
 
         if (this.receiver != null) {
             this.unregisterReceiver(this.receiver);
+        }
+
+        if (this.lockScreenReceiver != null) {
+            this.unregisterReceiver(this.lockScreenReceiver);
         }
 
         super.onDestroy();
@@ -312,6 +342,32 @@ public class AdjustmentService extends AccessibilityService {
 
         if (this.notchView != null) {
             this.notchView.setNotch(this.notch);
+        }
+
+    }
+
+    private void hideViews() {
+
+        if (adjustmentView != null) {
+            adjustmentView.setVisibility(View.INVISIBLE);
+        }
+
+        if (notchView != null) {
+            notchView.setVisibility(View.INVISIBLE);
+        }
+
+    }
+
+    private void showViews() {
+
+        // TODO: make a delay for make it visible?
+
+        if (adjustmentView != null) {
+            adjustmentView.setVisibility(View.VISIBLE);
+        }
+
+        if (notchView != null) {
+            notchView.setVisibility(View.VISIBLE);
         }
 
     }

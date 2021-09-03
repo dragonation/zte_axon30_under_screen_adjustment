@@ -95,6 +95,7 @@ public class OngoingService extends Service {
     private BatteryReceiver batteryReceiver;
     private float batteryTemperature;
 
+
     private BrightnessObserver brightnessObserver;
 
     private String deviceId;
