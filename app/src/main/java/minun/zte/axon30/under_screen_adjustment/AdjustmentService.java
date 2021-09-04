@@ -371,6 +371,9 @@ public class AdjustmentService extends AccessibilityService {
 
         int version = this.viewVisibilityVersion;
 
+        // we met a seldom bug which is unclear whether caused by notch simulation
+        // it will cause the system halt if notch view is visible during screen unlocking
+        // So just hide it, and recover it after screen unlocked 500ms
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
 
             if (version != this.viewVisibilityVersion) {
