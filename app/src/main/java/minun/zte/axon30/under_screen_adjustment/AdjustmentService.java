@@ -13,7 +13,8 @@ import android.content.pm.ActivityInfo;
 
 import android.graphics.PixelFormat;
 
-import android.util.Log;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
@@ -120,6 +121,8 @@ public class AdjustmentService extends AccessibilityService {
 
     private OngoingService.DisplayOrientation displayOrientation;
 
+    private int viewVisibilityVersion;
+
     float r;
     float g;
     float b;
@@ -130,6 +133,8 @@ public class AdjustmentService extends AccessibilityService {
     protected void onServiceConnected() {
 
         super.onServiceConnected();
+
+        this.viewVisibilityVersion = 1;
 
         this.displayOrientation = OngoingService.DisplayOrientation.PORTRAIT;
 
@@ -348,6 +353,8 @@ public class AdjustmentService extends AccessibilityService {
 
     private void hideViews() {
 
+        ++this.viewVisibilityVersion;
+
         if (adjustmentView != null) {
             adjustmentView.setVisibility(View.INVISIBLE);
         }
@@ -360,15 +367,27 @@ public class AdjustmentService extends AccessibilityService {
 
     private void showViews() {
 
-        // TODO: make a delay for make it visible?
+        ++this.viewVisibilityVersion;
 
-        if (adjustmentView != null) {
-            adjustmentView.setVisibility(View.VISIBLE);
-        }
+        int version = this.viewVisibilityVersion;
 
-        if (notchView != null) {
-            notchView.setVisibility(View.VISIBLE);
-        }
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+
+            if (version != this.viewVisibilityVersion) {
+                return;
+            }
+
+            if (adjustmentView != null) {
+                adjustmentView.setVisibility(View.VISIBLE);
+            }
+
+            if (notchView != null) {
+                notchView.setVisibility(View.VISIBLE);
+            }
+
+        }, 100);
+
+
 
     }
 
