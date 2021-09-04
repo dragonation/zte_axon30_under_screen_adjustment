@@ -385,7 +385,7 @@ public class AdjustmentService extends AccessibilityService {
                 notchView.setVisibility(View.VISIBLE);
             }
 
-        }, 100);
+        }, 500);
 
 
 
