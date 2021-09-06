@@ -25,6 +25,7 @@
                   android:configChanges=""
                   android:lockTaskMode="always"
                   android:launchMode="singleInstance"
+                  android:excludeFromRecents="true"
                   android:theme="@style/Clean">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
