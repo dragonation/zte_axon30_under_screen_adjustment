@@ -114,7 +114,7 @@ public class OngoingService extends Service {
     private boolean lastOverlayPermissionGranted;
 
     private boolean autofitEnabled;
-    private long lastAutofitTime;
+    private boolean autofitting = false;
 
     private boolean cleared = false;
 
@@ -511,64 +511,68 @@ public class OngoingService extends Service {
             return;
         }
 
-        if (new Date().getTime() - lastAutofitTime < 5000) {
+        if (this.autofitting) {
             return;
         }
 
-        this.lastAutofitTime = new Date().getTime();
+        this.autofitting = true;
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
 
-        float temperature = this.getBatteryTemperature();
-        float brightness = this.getSystemBrightness();
+            this.autofitting = false;
 
-        try {
+            float temperature = this.getBatteryTemperature();
+            float brightness = this.getSystemBrightness();
 
-            JSONArray temperatureData = this.analysis.getJSONArray("temperatures");
-            JSONArray brightnessData = this.analysis.getJSONArray("brightness");
+            try {
 
-            int temperatureIndex = (int)Math.round(
-                    (temperature - temperatureData.getDouble(0))
-                    / (temperatureData.getDouble(temperatureData.length() - 1) - temperatureData.getDouble(0))
-                    * (temperatureData.length() - 1));
-            if (temperatureIndex < 0) { temperatureIndex = 0; }
-            if (temperatureIndex > temperatureData.length()) { temperatureIndex = temperatureData.length(); }
+                JSONArray temperatureData = this.analysis.getJSONArray("temperatures");
+                JSONArray brightnessData = this.analysis.getJSONArray("brightness");
 
-            int brightnessIndex = (int)Math.round(
-                    (brightness - brightnessData.getDouble(0))
-                    / (brightnessData.getDouble(brightnessData.length() - 1) - brightnessData.getDouble(0)) *
-                    (brightnessData.length() - 1));
-            if (brightnessIndex < 0) { brightnessIndex = 0; }
-            if (brightnessIndex > brightnessData.length()) { brightnessIndex = brightnessData.length(); }
+                int temperatureIndex = (int)Math.round(
+                        (temperature - temperatureData.getDouble(0))
+                                / (temperatureData.getDouble(temperatureData.length() - 1) - temperatureData.getDouble(0))
+                                * (temperatureData.length() - 1));
+                if (temperatureIndex < 0) { temperatureIndex = 0; }
+                if (temperatureIndex > temperatureData.length()) { temperatureIndex = temperatureData.length(); }
 
-            JSONArray rs = this.analysis.getJSONArray("r");
-            float r = (float)rs.getJSONArray(temperatureIndex).getDouble(brightnessIndex);
-            JSONArray gs = this.analysis.getJSONArray("g");
-            float g = (float)gs.getJSONArray(temperatureIndex).getDouble(brightnessIndex);
-            JSONArray bs = this.analysis.getJSONArray("b");
-            float b = (float)bs.getJSONArray(temperatureIndex).getDouble(brightnessIndex);
-            JSONArray as = this.analysis.getJSONArray("a");
-            float a = (float)as.getJSONArray(temperatureIndex).getDouble(brightnessIndex);
+                int brightnessIndex = (int)Math.round(
+                        (brightness - brightnessData.getDouble(0))
+                                / (brightnessData.getDouble(brightnessData.length() - 1) - brightnessData.getDouble(0)) *
+                                (brightnessData.length() - 1));
+                if (brightnessIndex < 0) { brightnessIndex = 0; }
+                if (brightnessIndex > brightnessData.length()) { brightnessIndex = brightnessData.length(); }
 
-            this.r = r;
-            this.g = g;
-            this.b = b;
-            this.a = a;
+                JSONArray rs = this.analysis.getJSONArray("r");
+                float r = (float)rs.getJSONArray(temperatureIndex).getDouble(brightnessIndex);
+                JSONArray gs = this.analysis.getJSONArray("g");
+                float g = (float)gs.getJSONArray(temperatureIndex).getDouble(brightnessIndex);
+                JSONArray bs = this.analysis.getJSONArray("b");
+                float b = (float)bs.getJSONArray(temperatureIndex).getDouble(brightnessIndex);
+                JSONArray as = this.analysis.getJSONArray("a");
+                float a = (float)as.getJSONArray(temperatureIndex).getDouble(brightnessIndex);
 
-            Intent intent = new Intent(AdjustmentService.ACCESSIBILITY_ADJUST);
+                this.r = r;
+                this.g = g;
+                this.b = b;
+                this.a = a;
 
-            intent.putExtra("action", AdjustmentService.SET_ADJUSTMENT);
-            intent.putExtra("r", this.r);
-            intent.putExtra("g", this.g);
-            intent.putExtra("b", this.b);
-            intent.putExtra("a", this.a);
-            intent.putExtra("notch", this.notch);
-            intent.putExtra("update", !this.cleared);
+                Intent intent = new Intent(AdjustmentService.ACCESSIBILITY_ADJUST);
 
-            this.sendBroadcast(intent);
+                intent.putExtra("action", AdjustmentService.SET_ADJUSTMENT);
+                intent.putExtra("r", this.r);
+                intent.putExtra("g", this.g);
+                intent.putExtra("b", this.b);
+                intent.putExtra("a", this.a);
+                intent.putExtra("notch", this.notch);
+                intent.putExtra("update", !this.cleared);
 
-        } catch (JSONException exception) {
-            Log.e("minun", "Failed to autofit adjustment");
-//            Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show();
-        }
+                this.sendBroadcast(intent);
+
+            } catch (JSONException exception) {
+                Log.e("minun", "Failed to autofit adjustment");
+            }
+
+        }, 5000);
 
     }
 
