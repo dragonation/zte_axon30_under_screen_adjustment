@@ -352,6 +352,91 @@ public class AdjustmentActivity extends Activity {
             callback.response(OK);
         });
 
+        this.adjustmentJavaScriptAPIs.put("clearRecentAdjustments", (api, parameters, callback) -> {
+            AdjustmentActivity.this.clearRecentAdjustments();
+            callback.response(OK);
+        });
+
+        this.adjustmentJavaScriptAPIs.put("isAutofitEnabled", (api, parameters, callback) -> {
+            boolean enabled = AdjustmentActivity.this.isAutofitEnabled();
+            callback.response(OK, enabled);
+        });
+
+        this.adjustmentJavaScriptAPIs.put("setAutofitEnabled", (api, parameters, callback) -> {
+            boolean enabled;
+            try {
+                JSONArray arguments = parameters.getJSONArray("arguments");
+                enabled = arguments.getBoolean(0);
+            } catch (JSONException exception) {
+                callback.response(ERROR_JSON_ERROR);
+                return;
+            }
+            AdjustmentActivity.this.setAutofitEnabled(enabled);
+            callback.response(OK);
+        });
+
+        this.adjustmentJavaScriptAPIs.put("saveAnalysis", (api, parameters, callback) -> {
+
+            JSONObject analysis;
+            try {
+                JSONArray arguments = parameters.getJSONArray("arguments");
+                analysis = arguments.getJSONObject(0);
+            } catch (JSONException exception) {
+                callback.response(ERROR_JSON_ERROR);
+                return;
+            }
+
+            AdjustmentActivity.this.saveAnalysis(analysis);
+            callback.response(OK);
+
+        });
+
+        this.adjustmentJavaScriptAPIs.put("listRecentAdjustments", (api, parameters, callback) -> {
+
+            int limit;
+            try {
+                JSONArray arguments = parameters.getJSONArray("arguments");
+                limit = arguments.getInt(0);
+            } catch (JSONException exception) {
+                callback.response(ERROR_JSON_ERROR);
+                return;
+            }
+
+            List<AdjustmentRecord> records = AdjustmentActivity.this.listRecentAdjustments(limit);
+            JSONObject jsonObject = new JSONObject();
+            try {
+                JSONArray jsonArray = new JSONArray();
+                if (records != null) {
+                    int i = 0;
+                    for (AdjustmentRecord record : records) {
+                        JSONObject jsonRecord = new JSONObject();
+                        jsonRecord.put("time", record.time);
+                        jsonRecord.put("brightness", record.brightness);
+                        jsonRecord.put("temperature", record.temperature);
+                        jsonRecord.put("r", record.r);
+                        jsonRecord.put("g", record.g);
+                        jsonRecord.put("b", record.b);
+                        jsonRecord.put("a", record.a);
+                        jsonRecord.put("notch", record.notch);
+                        jsonArray.put(i, jsonRecord);
+                        ++i;
+                    }
+                    jsonObject.put("fetch", records.size());
+                    jsonObject.put("offset", 0);
+                    jsonObject.put("count", records.size());
+                } else {
+                    jsonObject.put("fetch", 0);
+                    jsonObject.put("offset", 0);
+                    jsonObject.put("count", 0);
+                }
+                jsonObject.put("records", jsonArray);
+            } catch (JSONException exception) {
+                callback.response(ERROR_JSON_ERROR);
+                return;
+            }
+            callback.response(OK, jsonObject);
+        });
+
     }
 
     private void evaluateJavaScript(String script) {
@@ -485,8 +570,73 @@ public class AdjustmentActivity extends Activity {
                     Settings.Secure.ACCESSIBILITY_ENABLED, 1);
         } catch (Exception exception) {
             Toast.makeText(this, exception.getMessage(), Toast.LENGTH_LONG).show();
-            Log.e("minun", "Failed to autoenable accessiblity service");
+            Log.e("minun", "Failed to autoenable accessibility service");
         }
+
+    }
+
+    private List<AdjustmentRecord> listRecentAdjustments(float limit) {
+
+        OngoingService service = OngoingService.getInstance();
+        if (service == null) {
+            Log.e("minun", "Adjustment service not available");
+            return null;
+        }
+
+        return service.listRecentAdjustments(limit);
+
+    }
+
+    private void clearRecentAdjustments() {
+
+        OngoingService service = OngoingService.getInstance();
+        if (service == null) {
+            Log.e("minun", "Adjustment service not available");
+            return;
+        }
+
+        service.clearRecentAdjustments();
+
+    }
+
+    private boolean isAutofitEnabled() {
+
+        OngoingService service = OngoingService.getInstance();
+        if (service == null) {
+            Log.e("minun", "Adjustment service not available");
+            return true;
+        }
+
+        return service.isAutofitEnabled();
+
+    }
+
+    private void setAutofitEnabled(boolean enabled) {
+
+        OngoingService service = OngoingService.getInstance();
+        if (service == null) {
+            Log.e("minun", "Adjustment service not available");
+            return;
+        }
+
+        service.setAutofitEnabled(enabled);
+        if (enabled) {
+            Toast.makeText(this, "自动拟合已经开启", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "自动拟合已被禁用", Toast.LENGTH_SHORT).show();
+        }
+
+    }
+
+    private void saveAnalysis(JSONObject analysis) {
+
+        OngoingService service = OngoingService.getInstance();
+        if (service == null) {
+            Log.e("minun", "Adjustment service not available");
+            return;
+        }
+
+        service.saveAnalysis(analysis);
 
     }
 

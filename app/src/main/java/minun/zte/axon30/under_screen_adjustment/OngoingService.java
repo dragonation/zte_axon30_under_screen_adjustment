@@ -31,6 +31,8 @@ import android.view.OrientationEventListener;
 import android.view.Surface;
 
 import android.view.accessibility.AccessibilityManager;
+import android.widget.Toast;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -54,7 +56,7 @@ public class OngoingService extends Service {
         public void onReceive(Context context, Intent intent) {
             float temperature = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -2550) / 10f;
             OngoingService.this.batteryTemperature = temperature;
-            OngoingService.this.autorefreshAdjustment();
+            OngoingService.this.autofitAdjustment();
         }
     }
 
@@ -65,7 +67,7 @@ public class OngoingService extends Service {
         @Override
         public void onChange(boolean selfChange) {
             super.onChange(selfChange);
-            OngoingService.this.autorefreshAdjustment();
+            OngoingService.this.autofitAdjustment();
         }
     }
 
@@ -95,6 +97,7 @@ public class OngoingService extends Service {
     private BatteryReceiver batteryReceiver;
     private float batteryTemperature;
 
+    private JSONObject analysis;
 
     private BrightnessObserver brightnessObserver;
 
@@ -109,6 +112,11 @@ public class OngoingService extends Service {
     private AdjustmentDatabase adjustmentDatabase;
 
     private boolean lastOverlayPermissionGranted;
+
+    private boolean autofitEnabled;
+    private long lastAutofitTime;
+
+    private boolean cleared = false;
 
     public static OngoingService getInstance() {
         return ongoingService;
@@ -154,6 +162,18 @@ public class OngoingService extends Service {
             }
         }
 
+        String analysis = this.adjustmentDatabase.getPreference("analysis");
+        if (analysis != null) {
+            try {
+                this.analysis = new JSONObject(analysis);
+            } catch (JSONException exception) {
+                Log.e("minun", "Failed to load analysis result");
+            }
+        }
+
+        String autofit = this.adjustmentDatabase.getPreference("autofitEnabled");
+        this.autofitEnabled = (autofit == null) || (!"no".equals(autofit));
+
         // battery initialization
         this.batteryTemperature = -255f;
         this.batteryReceiver = new BatteryReceiver();
@@ -177,7 +197,7 @@ public class OngoingService extends Service {
 
         try {
 
-            NotificationChannel channel = new NotificationChannel("minun", "minun", NotificationManager.IMPORTANCE_HIGH);
+            NotificationChannel channel = new NotificationChannel("minun", "A30屏下无障碍实时微调", NotificationManager.IMPORTANCE_HIGH);
 
             NotificationManager manager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
 
@@ -413,7 +433,10 @@ public class OngoingService extends Service {
 
     }
 
+
     public void clearAdjustment() {
+
+        this.cleared = true;
 
         Intent intent = new Intent(AdjustmentService.ACCESSIBILITY_ADJUST);
         intent.putExtra("action", AdjustmentService.CLEAR_ADJUSTMENT);
@@ -423,6 +446,8 @@ public class OngoingService extends Service {
     }
 
     public void restoreAdjustment() {
+
+        this.cleared = false;
 
         {
             Intent intent = new Intent(AdjustmentService.ACCESSIBILITY_ADJUST);
@@ -476,12 +501,108 @@ public class OngoingService extends Service {
 
     }
 
-    private void autorefreshAdjustment() {
+    private void autofitAdjustment() {
+
+        if (!this.autofitEnabled) {
+            return;
+        }
+
+        if (this.analysis == null) {
+            return;
+        }
+
+        if (new Date().getTime() - lastAutofitTime < 5000) {
+            return;
+        }
+
+        this.lastAutofitTime = new Date().getTime();
 
         float temperature = this.getBatteryTemperature();
         float brightness = this.getSystemBrightness();
 
-        // TODO: using data exists to get smart adjustment according to temperature and brightness;
+        try {
+
+            JSONArray temperatureData = this.analysis.getJSONArray("temperatures");
+            JSONArray brightnessData = this.analysis.getJSONArray("brightness");
+
+            int temperatureIndex = (int)Math.round(
+                    (temperature - temperatureData.getDouble(0))
+                    / (temperatureData.getDouble(temperatureData.length() - 1) - temperatureData.getDouble(0))
+                    * (temperatureData.length() - 1));
+            if (temperatureIndex < 0) { temperatureIndex = 0; }
+            if (temperatureIndex > temperatureData.length()) { temperatureIndex = temperatureData.length(); }
+
+            int brightnessIndex = (int)Math.round(
+                    (brightness - brightnessData.getDouble(0))
+                    / (brightnessData.getDouble(brightnessData.length() - 1) - brightnessData.getDouble(0)) *
+                    (brightnessData.length() - 1));
+            if (brightnessIndex < 0) { brightnessIndex = 0; }
+            if (brightnessIndex > brightnessData.length()) { brightnessIndex = brightnessData.length(); }
+
+            JSONArray rs = this.analysis.getJSONArray("r");
+            float r = (float)rs.getJSONArray(temperatureIndex).getDouble(brightnessIndex);
+            JSONArray gs = this.analysis.getJSONArray("g");
+            float g = (float)gs.getJSONArray(temperatureIndex).getDouble(brightnessIndex);
+            JSONArray bs = this.analysis.getJSONArray("b");
+            float b = (float)bs.getJSONArray(temperatureIndex).getDouble(brightnessIndex);
+            JSONArray as = this.analysis.getJSONArray("a");
+            float a = (float)as.getJSONArray(temperatureIndex).getDouble(brightnessIndex);
+
+            this.r = r;
+            this.g = g;
+            this.b = b;
+            this.a = a;
+
+            Intent intent = new Intent(AdjustmentService.ACCESSIBILITY_ADJUST);
+
+            intent.putExtra("action", AdjustmentService.SET_ADJUSTMENT);
+            intent.putExtra("r", this.r);
+            intent.putExtra("g", this.g);
+            intent.putExtra("b", this.b);
+            intent.putExtra("a", this.a);
+            intent.putExtra("notch", this.notch);
+            intent.putExtra("update", !this.cleared);
+
+            this.sendBroadcast(intent);
+
+        } catch (JSONException exception) {
+            Log.e("minun", "Failed to autofit adjustment");
+//            Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show();
+        }
+
+    }
+
+    public List<AdjustmentRecord> listRecentAdjustments(float limit) {
+
+        return this.adjustmentDatabase.listData(limit);
+
+    }
+
+    public void clearRecentAdjustments() {
+
+        this.adjustmentDatabase.clearData();
+
+    }
+
+    public void saveAnalysis(JSONObject analysis) {
+
+        this.analysis = analysis;
+
+        this.adjustmentDatabase.updatePreference("analysis_data", analysis.toString());
+
+    }
+
+    public boolean isAutofitEnabled() {
+
+        return this.autofitEnabled;
+
+    }
+
+    public void setAutofitEnabled(boolean enabled) {
+
+        this.autofitEnabled = enabled;
+
+        this.adjustmentDatabase.updatePreference("autofit_enabled", enabled ? "yes" : "no");
 
     }
 

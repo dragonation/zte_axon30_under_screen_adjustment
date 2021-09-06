@@ -7,7 +7,9 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 public class AdjustmentDatabase extends SQLiteOpenHelper {
@@ -65,6 +67,40 @@ public class AdjustmentDatabase extends SQLiteOpenHelper {
 
     }
 
+    public List<AdjustmentRecord> listData(float limit) {
+
+        List<AdjustmentRecord> list = new ArrayList<>();
+
+        Cursor cursor = this.getWritableDatabase().rawQuery("select * from adjustment_data order by time desc limit ?", new String[]{"" + limit});
+        try {
+            while (cursor.moveToNext()) {
+                AdjustmentRecord record = new AdjustmentRecord();
+                record.time = cursor.getFloat(cursor.getColumnIndex("time"));
+                record.brightness = cursor.getFloat(cursor.getColumnIndex("brightness"));
+                record.temperature = cursor.getFloat(cursor.getColumnIndex("temperature"));
+                record.r = cursor.getFloat(cursor.getColumnIndex("r"));
+                record.g = cursor.getFloat(cursor.getColumnIndex("g"));
+                record.b = cursor.getFloat(cursor.getColumnIndex("b"));
+                record.a = cursor.getFloat(cursor.getColumnIndex("a"));
+                record.notch = cursor.getFloat(cursor.getColumnIndex("notch"));
+                list.add(record);
+            }
+        } finally {
+            cursor.close();
+        }
+
+        return list;
+
+    }
+
+    public void clearData() {
+
+        this.getWritableDatabase().execSQL(
+                "delete from adjustment_data",
+                new Object[]{});
+
+    }
+
     public void updatePreference(String name, String value) {
 
         SQLiteDatabase database = this.getWritableDatabase();
@@ -92,11 +128,14 @@ public class AdjustmentDatabase extends SQLiteOpenHelper {
         String result = null;
 
         Cursor cursor = this.getWritableDatabase().rawQuery("select value from adjustment_preferences where name = ?", new String[]{name});
-        boolean hasPreset = cursor.moveToNext();
-        if (hasPreset) {
-            result = cursor.getString(cursor.getColumnIndex("value"));
+        try {
+            boolean hasPreset = cursor.moveToNext();
+            if (hasPreset) {
+                result = cursor.getString(cursor.getColumnIndex("value"));
+            }
+        } finally {
+            cursor.close();
         }
-        cursor.close();
 
         return result;
 

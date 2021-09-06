@@ -76,6 +76,24 @@
             console.error(error);
         }
 
+        let data = (await MinunZTEAxon30Logic.listRecentAdjustments(100)).records;
+
+        let r = MinunZTEAxon30Analysis.createDataMesh(data.map(record => [record.temperature, record.brightness, record.r]));
+        let g = MinunZTEAxon30Analysis.createDataMesh(data.map(record => [record.temperature, record.brightness, record.g]));
+        let b = MinunZTEAxon30Analysis.createDataMesh(data.map(record => [record.temperature, record.brightness, record.b]));
+        let a = MinunZTEAxon30Analysis.createDataMesh(data.map(record => [record.temperature, record.brightness, record.a]));
+
+        let analysis = {
+            "brightness": a.brightness,
+            "temperatures": a.temperatures,
+            "r": r.points,
+            "g": g.points,
+            "b": b.points,
+            "a": a.points,
+        };
+
+        await window.MinunZTEAxon30API.saveAnalysis(analysis);
+
     };
 
     logic.getCurrentAdjustment = async function () {
@@ -117,6 +135,42 @@
     logic.autoenableAccessibilityService = async function () {
 
         return await window.MinunZTEAxon30API.autoenableAccessibilityService();
+
+    };
+
+    logic.listRecentAdjustments = async function (limit) {
+
+        return await window.MinunZTEAxon30API.listRecentAdjustments(limit);
+
+    };
+
+    logic.isAutofitEnabled = async function () {
+
+        return await window.MinunZTEAxon30API.isAutofitEnabled();
+
+    };
+
+    logic.setAutofitEnabled = async function (enabled) {
+
+        return await window.MinunZTEAxon30API.setAutofitEnabled(enabled);
+
+    };
+
+    logic.clearRecentAdjustments = async function () {
+
+        return await window.MinunZTEAxon30API.clearRecentAdjustments();
+
+    };
+
+    logic.toggleAutofitEnabled = async function () {
+
+        if (await logic.isAutofitEnabled()) {
+            await window.MinunZTEAxon30API.setAutofitEnabled(false);
+            document.querySelector("#trigger-autofit").textContent = "开启";
+        } else {
+            await window.MinunZTEAxon30API.setAutofitEnabled(true);
+            document.querySelector("#trigger-autofit").textContent = "禁用";
+        }
 
     };
 

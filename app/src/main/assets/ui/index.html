@@ -4,9 +4,12 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"/>
         <title>A30屏下微调</title>
         <link rel="stylesheet" href="./styles.css"/>
+        <script src="./scripts/three.js"></script>
+        <script src="./scripts/three.controls.orbit.js"></script>
         <script src="./scripts/api.js"></script>
         <script src="./scripts/logic.js"></script>
         <script src="./scripts/ui.js"></script>
+        <script src="./scripts/analysis.js"></script>
     </head>
     <body>
         <div id="test-background"></div>
@@ -66,7 +69,7 @@
                     <div class="color-well" style="background-color: #f8f;"></div>
                 </div>
                 <div style="display: flex;">
-                    <div class="button" style="background-color: transparent;" onclick="document.querySelector('#version').classList.add('visible')">历史</div>
+                    <div class="button" style="background-color: transparent;" onclick="document.querySelector('#analysis').classList.add('visible');MinunZTEAxon30Analysis.refreshAnalysisChart()">拟合</div>
                     <div class="button" style="background-color: transparent; margin-left: 0;" onclick="document.querySelector('#help').classList.add('visible')">帮助</div>
                     <div class="button" style="margin-left: 0;" onclick="MinunZTEAxon30Logic.saveAdjustment(false)">保存</div>
                 </div>
@@ -89,7 +92,7 @@
         <div id="help" class="mask">
             <div class="form">
                 <h2>使用说明</h2>
-                <div style="line-height: 20px;">在开启了系统无障碍选项以后，先挑选白色或绿色背景，调节不透明度，直至两部分屏幕没有明显差异后。针对红蓝两色背景情况下，分别调整红蓝两色的补偿。之后在各个测试背景色下尝试微调参数，直到两块屏幕之间的色差基本消除后。点击保存按钮，返回桌面即可。目前本应用没有强行后台常驻，因此请确保在历史中不要清除本应用的前台界面。</div>
+                <div style="line-height: 20px;">在开启了系统无障碍选项以后，先挑选白色或绿色背景，调节不透明度，直至两部分屏幕没有明显差异后。针对红蓝两色背景情况下，分别调整红蓝两色的补偿。之后在各个测试背景色下尝试微调参数，直到两块屏幕之间的色差基本消除后。点击保存按钮，返回桌面即可。另已经支持自动补偿拟合，可以在多种不同情况下调整保存更新数据，系统会自动学习历史更新，调整补偿参数的拟合算法。目前本应用没有强行后台常驻，因此请确保在历史中不要清除本应用的前台界面。</div>
                 <div class="button" style="margin-right: 0px;" onclick="document.querySelector('#help').classList.remove('visible')">我知道了</div>
             </div>
         </div>
@@ -103,9 +106,32 @@
                 </div>
             </div>
         </div>
+        <div id="analysis" class="mask">
+            <div class="form">
+                <h2>数据拟合</h2>
+                <div style="line-height: 20px;">目前的拟合分析只会分析最后100条调整数据，同时拟合算法仅供模拟补偿使用，与实际屏幕物理特性并无关系。</div>
+                <div id="analysis-chart" style="width: 280px; height: 280px; box-shadow: 0 0 0 0.3333px #0002; margin-top: 20px; margin-bottom: 40px;"></div>
+                <div style="display: flex;">
+                    <div class="button" style="margin-right: 0px; background-color: transparent; margin-left: 0;" onclick="document.querySelector('#analysis-clear-warning').classList.add('visible');">清理重置</div>
+                    <div class="button" id="trigger-autofit" style="margin-right: 0px; background-color: transparent; margin-left: 0;" onclick="MinunZTEAxon30Logic.toggleAutofitEnabled()">禁用</div>
+                    <div class="button" style="margin-right: 0px;" onclick="document.querySelector('#analysis').classList.remove('visible');MinunZTEAxon30Analysis.cancelAnalysisChart()">知道了</div>
+                </div>
+            </div>
+        </div>
+        <div id="analysis-clear-warning" class="mask">
+            <div class="form">
+                <h2>拟合数据清理重置确认</h2>
+                <div style="line-height: 20px;">清理重置将会清理掉您曾经所有记录过的历史调整数据，重新开始新的拟合。您确定要这样做吗？</div>
+                <div style="display: flex;">
+                    <div class="button" style="margin-right: 0px; background-color: transparent;" onclick="document.querySelector('#analysis-clear-warning').classList.remove('visible'); MinunZTEAxon30Logic.clearRecentAdjustments()">我知道了，继续</div>
+                    <div class="button" style="margin-right: 0px;" onclick="document.querySelector('#analysis-clear-warning').classList.remove('visible');">取消</div>
+                </div>
+            </div>
+        </div>
         <div id="version" class="mask">
             <div class="form">
                 <h2>版本历史</h2>
+                <div>210906.1: 增加自适应拟合算法</div>
                 <div>210904.1: 修复可能存在的bug</div>
                 <div>210903.2: 增加刘海屏模拟支持</div>
                 <div>210902.1: 增加步进调整支持</div>
@@ -131,13 +157,13 @@
         </div>
         <div id="sample-corner">
             <svg id="sample-corner-left" viewBox="0 0 50 50" version="1.1" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0 0L49.9989 0L49.9989 49.9021C49.9739 36.1241 45.086 24.365 35.3352 14.6249C25.5745 4.87497 13.7961 0 0 0L0 0Z" transform="matrix(-1 0 0 1 50 0)" id="Vector-shape-2" fill="#000000" fill-rule="evenodd" stroke="none" />
+                <path d="M0 0L49.9989 0L49.9989 49.9021C49.9739 36.1241 45.086 24.365 35.3352 14.6249C25.5745 4.87497 13.7961 0 0 0L0 0Z" transform="matrix(-1 0 0 1 50 0)" fill="#000000" fill-rule="evenodd" stroke="none" />
             </svg>
             <svg id="sample-corner-right" viewBox="0 0 50 50" version="1.1" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0 0L49.9989 0L49.9989 49.9021C49.9739 36.1241 45.086 24.365 35.3352 14.6249C25.5745 4.87497 13.7961 0 0 0L0 0Z" transform="translate(0.0010986328 0)" id="Vector-shape-2" fill="#000000" fill-rule="evenodd" stroke="none" />
+                <path d="M0 0L49.9989 0L49.9989 49.9021C49.9739 36.1241 45.086 24.365 35.3352 14.6249C25.5745 4.87497 13.7961 0 0 0L0 0Z" transform="translate(0.0010986328 0)" fill="#000000" fill-rule="evenodd" stroke="none" />
             </svg>
         </div>
         <div id="reload-button" onclick="document.location.reload()">重置</div>
-        <div id="copyright">Made by minun, version 210904.1</div>
+        <div id="copyright" onclick="document.querySelector('#version').classList.add('visible')">Made by minun, version 210906.1</div>
     </body>
 </html>
